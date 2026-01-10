@@ -1,7 +1,15 @@
 {
   "version": "1.0.0",
-  "timestamp": 1768076463657,
+  "timestamp": 1768077458514,
   "files": [
+    {
+      "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js",
+      "hash": "aa7b3c12eaef2a50cf34c32c9782ac22",
+      "lastModified": 1768077384747.998,
+      "units": [
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js:81:run"
+      ]
+    },
     {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
       "hash": "6881b9a19b333d7aa0680d01bb794c89",
@@ -173,6 +181,20 @@
     }
   ],
   "units": [
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js:81:run",
+      "type": "function",
+      "name": "run",
+      "body": "async function run() {\n    console.log('=== Delta Parser Test ===\\n');\n\n    // Show configuration\n    console.log('Configuration:');\n    console.log(`  Classification: ${options.useGemini ? '🤖 Gemini API' : '⚡ Quick Detection (regex)'}`);\n    console.log(`  Scope: ${options.scope || '📁 Full workspace'}`);\n    console.log(`  Clean index: ${options.clean ? '✅ Yes' : '❌ No'}`);\n    console.log('');\n\n    const workspaceRoot = __dirname;\n    const analyticsDir = path.join(workspaceRoot, '.delta-analytics-config');\n\n    // Clean index if requested\n    if (options.clean) {\n        console.log('🗑️  Cleaning existing index...');\n        if (fs.existsSync(analyticsDir)) {\n            fs.rmSync(analyticsDir, { recursive: true, force: true });\n            console.log('✅ Removed .delta-analytics-config/\\n');\n        } else {\n            console.log('⚠️  No existing index found\\n');\n        }\n    }\n\n    // Check Gemini API key if needed\n    if (options.useGemini && !process.env.GEMINI_API_KEY) {\n        console.error('❌ Error: --gemini requires GEMINI_API_KEY in .env file');\n        console.error('   Create .env file with: GEMINI_API_KEY=your_key_here\\n');\n        process.exit(1);\n    }\n\n    try {\n        // Initialize parser\n        console.log('🔧 Initializing parser...');\n        await initializeParser(workspaceRoot, process.env.GEMINI_API_KEY);\n        console.log('✅ Parser initialized\\n');\n\n        // Modify scanner scope if needed\n        let filesToScan = [];\n        if (options.scope) {\n            const scopePath = path.join(workspaceRoot, options.scope);\n            if (!fs.existsSync(scopePath)) {\n                console.error(`❌ Error: Scope path does not exist: ${scopePath}\\n`);\n                process.exit(1);\n            }\n            console.log(`📊 Scanning scope: ${options.scope}...`);\n            filesToScan = await scanWorkspace(scopePath);\n        } else {\n            console.log('📊 Scanning full workspace...');\n            filesToScan = await scanWorkspace(workspaceRoot);\n        }\n\n        console.log(`✅ Found ${filesToScan.length} files\\n`);\n\n        if (filesToScan.length === 0) {\n            console.log('⚠️  No files to analyze\\n');\n            process.exit(0);\n        }\n\n        // Run indexing\n        console.log(`🚀 Starting indexing...`);\n        if (options.useGemini) {\n            console.log('   Using Gemini batch classification (this may take 40-60 seconds)\\n');\n        } else {\n            console.log('   Using quick regex detection (fast!)\\n');\n        }\n\n        const startTime = Date.now();\n\n        // Temporarily modify classifyApiUsage to use quick detection if needed\n        if (!options.useGemini) {\n            // The system already defaults to quick detection via useQuickDetection=true\n            console.log('💡 Tip: Add --gemini flag to use AI classification\\n');\n        }\n\n        const graph = await indexWorkspace(workspaceRoot);\n        const duration = ((Date.now() - startTime) / 1000).toFixed(2);\n\n        console.log(`\\n✅ Indexing complete in ${duration}s!\\n`);\n\n        // Display results\n        console.log('=== Results ===\\n');\n        console.log(`📄 Files indexed: ${graph.files.length}`);\n        console.log(`🔍 Code units analyzed: ${graph.units.length}`);\n        console.log(`🤖 Classifications: ${Object.keys(graph.classifications).length}\\n`);\n\n        // Analyze classifications\n        const byCategory = {};\n        const byProvider = {};\n        let paidApiCount = 0;\n\n        for (const [unitId, classification] of Object.entries(graph.classifications)) {\n            if (classification.role === 'consumer' && classification.category !== 'other') {\n                paidApiCount++;\n\n                // Group by category\n                if (!byCategory[classification.category]) {\n                    byCategory[classification.category] = [];\n                }\n                byCategory[classification.category].push(unitId);\n\n                // Group by provider\n                if (!byProvider[classification.provider]) {\n                    byProvider[classification.provider] = [];\n                }\n                byProvider[classification.provider].push(unitId);\n            }\n        }\n\n        console.log(`💰 Potential Paid API Usage: ${paidApiCount} location(s)\\n`);\n\n        if (paidApiCount > 0) {\n            console.log('By Category:');\n            for (const [category, units] of Object.entries(byCategory)) {\n                console.log(`  📦 ${category}: ${units.length} usage(s)`);\n            }\n            console.log('');\n\n            console.log('By Provider:');\n            for (const [provider, units] of Object.entries(byProvider)) {\n                console.log(`  🏢 ${provider}: ${units.length} usage(s)`);\n            }\n            console.log('');\n\n            // Show sample units\n            console.log('Sample Detections:');\n            const sampleUnits = graph.units.filter(u => {\n                const c = graph.classifications[u.id];\n                return c && c.role === 'consumer' && c.category !== 'other';\n            }).slice(0, 5);\n\n            for (const unit of sampleUnits) {\n                const c = graph.classifications[unit.id];\n                const fileName = path.basename(unit.location.fileUri);\n                console.log(`  • ${unit.name}`);\n                console.log(`    File: ${fileName}:${unit.location.startLine}`);\n                console.log(`    Provider: ${c.provider} (${c.category})`);\n                console.log(`    Confidence: ${(c.confidence * 100).toFixed(0)}%\\n`);\n            }\n        }\n\n        // Storage info\n        console.log('=== Storage ===\\n');\n        const indexPath = path.join(analyticsDir, 'index.json');\n        const hashPath = path.join(analyticsDir, 'file-map.hash');\n\n        if (fs.existsSync(indexPath)) {\n            const stats = fs.statSync(indexPath);\n            console.log(`✅ index.json: ${(stats.size / 1024).toFixed(2)} KB`);\n        }\n        if (fs.existsSync(hashPath)) {\n            const stats = fs.statSync(hashPath);\n            console.log(`✅ file-map.hash: ${stats.size} bytes`);\n        }\n        console.log(`📁 Location: ${analyticsDir}\\n`);\n\n        console.log('✅ Test complete!\\n');\n\n        // Show next steps\n        if (!options.useGemini) {\n            console.log('💡 Next steps:');\n            console.log('   • Run with --gemini for AI-powered classification');\n            console.log('   • Use --scope src/ to analyze specific directories');\n            console.log('   • Add --clean to force re-indexing\\n');\n        }\n\n    } catch (error) {\n        console.error('\\n❌ Error:', error.message);\n        if (error.stack) {\n            console.error('\\nStack trace:');\n            console.error(error.stack);\n        }\n        process.exit(1);\n    }\n}",
+      "dependencies": [],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js",
+        "startLine": 81,
+        "startColumn": 0,
+        "endLine": 255,
+        "endColumn": 1
+      }
+    },
     {
       "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:18:parseFile",
       "type": "function",
@@ -1203,6 +1225,12 @@
     }
   ],
   "classifications": {
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js:81:run": {
+      "role": "consumer",
+      "category": "llm",
+      "provider": "Google (Gemini)",
+      "confidence": 0.95
+    },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:18:parseFile": {
       "role": "none",
       "category": "other",
@@ -1264,28 +1292,28 @@
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/codelens_provider.ts:10:cost_codelens_provider": {
-      "role": "none",
+      "role": "consumer",
       "category": "llm",
-      "provider": "none",
+      "provider": "generic",
       "confidence": 0.9
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/codelens_provider.ts:17:cost_codelens_provider.provideCodeLenses": {
-      "role": "none",
+      "role": "consumer",
       "category": "llm",
-      "provider": "none",
+      "provider": "generic",
       "confidence": 0.9
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/codelens_provider.ts:47:cost_codelens_provider.refresh": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.7
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/cost_calculator.ts:23:estimate_tokens": {
       "role": "none",
       "category": "llm",
-      "provider": "none",
-      "confidence": 0.9
+      "provider": "generic",
+      "confidence": 0.95
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/cost_calculator.ts:34:calculate_cost": {
       "role": "none",
@@ -1301,9 +1329,9 @@
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/extension.ts:6:activate": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.8
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/extension.ts:145:deactivate": {
       "role": "none",
@@ -1314,37 +1342,37 @@
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:20:initializeGemini": {
       "role": "consumer",
       "category": "llm",
-      "provider": "google",
+      "provider": "Google (Gemini)",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:38:classifyApiUsage": {
       "role": "consumer",
       "category": "llm",
-      "provider": "google",
+      "provider": "Google (Gemini)",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:104:buildClassificationPrompt": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.9
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:137:parseClassificationResponse": {
       "role": "none",
       "category": "llm",
       "provider": "none",
-      "confidence": 1
+      "confidence": 0.9
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:176:extractApiPatterns": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.9
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:232:batchClassifyApis": {
       "role": "consumer",
       "category": "llm",
-      "provider": "google",
+      "provider": "Google (Gemini)",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:279:buildBatchClassificationPrompt": {
@@ -1357,36 +1385,36 @@
       "role": "none",
       "category": "llm",
       "provider": "none",
-      "confidence": 1
+      "confidence": 0.9
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:376:detectProvidersQuick": {
       "role": "none",
-      "category": "llm",
-      "provider": "none",
-      "confidence": 0.9
+      "category": "other",
+      "provider": "generic",
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:22:initializeParser": {
       "role": "none",
-      "category": "llm",
-      "provider": "google",
-      "confidence": 0.9
+      "category": "other",
+      "provider": "none",
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:33:indexWorkspace": {
-      "role": "consumer",
-      "category": "llm",
-      "provider": "google",
-      "confidence": 0.95
+      "role": "none",
+      "category": "other",
+      "provider": "none",
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:126:parse_llm_calls": {
-      "role": "none",
+      "role": "consumer",
       "category": "llm",
-      "provider": "openai, anthropic",
+      "provider": "OpenAI, Anthropic",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:171:extractModelFromCode": {
       "role": "none",
       "category": "llm",
-      "provider": "none",
+      "provider": "generic",
       "confidence": 0.9
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:189:extractPromptFromCode": {
@@ -1409,25 +1437,25 @@
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/scanner.ts:16:scanWorkspace": {
       "role": "none",
-      "category": "other",
+      "category": "storage",
       "provider": "none",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/scanner.ts:62:computeFileHash": {
       "role": "none",
-      "category": "other",
+      "category": "storage",
       "provider": "none",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/scanner.ts:78:getModifiedFiles": {
       "role": "none",
-      "category": "other",
+      "category": "storage",
       "provider": "none",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/scanner.ts:100:createHashMap": {
       "role": "none",
-      "category": "other",
+      "category": "storage",
       "provider": "none",
       "confidence": 1
     },
@@ -1480,9 +1508,9 @@
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/treeview_provider.ts:18:cost_tree_provider": {
-      "role": "none",
+      "role": "consumer",
       "category": "llm",
-      "provider": "none",
+      "provider": "generic",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/treeview_provider.ts:30:cost_tree_provider.getTreeItem": {
@@ -1492,46 +1520,46 @@
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/treeview_provider.ts:37:cost_tree_provider.getChildren": {
-      "role": "none",
+      "role": "consumer",
       "category": "llm",
-      "provider": "none",
+      "provider": "generic",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/treeview_provider.ts:66:cost_tree_provider.update_calls": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.7
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/treeview_provider.ts:74:cost_tree_provider.update_user_count": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.7
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/treeview_provider.ts:82:cost_tree_provider.refresh": {
       "role": "none",
-      "category": "llm",
+      "category": "other",
       "provider": "none",
-      "confidence": 0.7
+      "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test.js:11:test": {
       "role": "none",
       "category": "llm",
-      "provider": "none",
-      "confidence": 0.8
+      "provider": "generic",
+      "confidence": 0.9
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test_parser.js:45:runTest": {
       "role": "none",
       "category": "llm",
-      "provider": "google",
+      "provider": "Google (Gemini)",
       "confidence": 1
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test_parser_no_gemini.js:43:runTest": {
       "role": "none",
       "category": "llm",
-      "provider": "openai",
-      "confidence": 0.9
+      "provider": "OpenAI",
+      "confidence": 0.8
     }
   }
 }
