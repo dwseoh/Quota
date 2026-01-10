@@ -31,11 +31,11 @@ export class cost_tree_item extends vscode.TreeItem {
       case 'call_item':
         this.iconPath = new vscode.ThemeIcon('symbol-method');
         this.description = call_data ? `line ${call_data.line}` : '';
-        // make call items clickable to show details
+        // make call items clickable to jump to code location
         this.command = {
-          command: 'cost-tracker.showCallDetails',
-          title: 'Show Call Details',
-          arguments: [this]
+          command: 'cost-tracker.jumpToCall',
+          title: 'Jump to Call',
+          arguments: [call_data]
         };
         break;
       case 'simulator_section':

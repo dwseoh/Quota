@@ -173,6 +173,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
 
       calls.push({
         line: unit.location.startLine, // Keep 1-indexed (codelens will adjust)
+        file_path: documentUri,
         provider: classification.provider === 'openai' ? 'openai' : 'anthropic',
         model: model,
         prompt_text: promptText,

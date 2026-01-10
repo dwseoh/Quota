@@ -50,6 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
         
         allCalls.push({
           line: unit.location.startLine, // Keep 1-indexed for display
+          file_path: unit.location.fileUri,
           provider: classification.provider === 'openai' ? 'openai' : 'anthropic',
           model: model,
           prompt_text: promptText,
@@ -249,6 +250,35 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(show_call_details_cmd);
+
+  // command to jump to code location from tree item
+  const jump_to_call_cmd = vscode.commands.registerCommand(
+    'cost-tracker.jumpToCall',
+    async (call: llm_call) => {
+      if (!call || !call.file_path) {
+        vscode.window.showWarningMessage('No file path available for this call');
+        return;
+      }
+
+      try {
+        const uri = vscode.Uri.file(call.file_path);
+        const document = await vscode.workspace.openTextDocument(uri);
+        const editor = await vscode.window.showTextDocument(document);
+        
+        // Jump to the line (convert 1-indexed to 0-indexed)
+        const line = Math.max(0, call.line - 1);
+        const position = new vscode.Position(line, 0);
+        const range = new vscode.Range(position, position);
+        
+        // Move cursor and reveal the line
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to open file: ${error}`);
+      }
+    }
+  );
+  context.subscriptions.push(jump_to_call_cmd);
 
   // --- document listeners ---
 

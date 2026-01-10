@@ -5,6 +5,7 @@
 
 export interface llm_call {
   line: number;
+  file_path?: string; // optional for backwards compatibility
   provider: "openai" | "anthropic";
   model: string;
   prompt_text: string;
