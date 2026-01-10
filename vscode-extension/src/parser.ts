@@ -56,13 +56,14 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
     const newUnitsToClassify: { unit: CodeUnit; bundle: ContextBundle }[] = [];
 
     for (const filePath of modifiedFilePaths) {
-      console.log(`Parsing ${filePath}...`);
+      console.log(`\n📄 Parsing ${filePath}...`);
 
       // Remove old units from this file
       const fileUnits = allUnits.filter(u => u.location.fileUri !== filePath);
 
       // Parse and add new units
       const newUnits = await parseFile(filePath);
+      console.log(`  Found ${newUnits.length} code units`);
       allUnits.push(...newUnits);
 
       // Prepare units for batch classification
@@ -114,7 +115,15 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
     // Cache for quick access
     cachedGraph = graph;
 
-    console.log(`Indexing complete: ${files.length} files, ${allUnits.length} units`);
+    console.log(`\n📦 Indexing complete: ${files.length} files, ${allUnits.length} units`);
+    console.log(`📋 Classifications: ${Object.keys(allClassifications).length} total`);
+    
+    // Count LLM classifications
+    const llmCount = Object.values(allClassifications).filter(
+      c => c.role === 'consumer' && c.category === 'llm'
+    ).length;
+    console.log(`🤖 LLM API calls detected: ${llmCount}`);
+    
     return graph;
   } catch (error) {
     console.error('Error indexing workspace:', error);
@@ -153,7 +162,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
       const cost = calculate_cost(model, tokens);
 
       calls.push({
-        line: unit.location.startLine - 1, // VSCode uses 0-indexed lines
+        line: unit.location.startLine, // Keep 1-indexed (codelens will adjust)
         provider: classification.provider === 'openai' ? 'openai' : 'anthropic',
         model: model,
         prompt_text: promptText,

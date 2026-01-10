@@ -419,10 +419,13 @@ export function detectProvidersQuick(bundle: ContextBundle): string[] {
     const providers: string[] = [];
     const imports = bundle.imports.toLowerCase();
 
+    console.log(`🔎 Quick Detection - Imports: ${imports.substring(0, 200)}...`);
+
     // Only check most common/obvious ones
     const quickChecks: Record<string, string> = {
         'openai': 'openai',
         'anthropic': 'anthropic',
+        '@anthropic-ai/sdk': 'anthropic', // Anthropic SDK package name
         '@google/generative': 'gemini',
         'stripe': 'stripe',
         'aws-sdk': 'aws',
@@ -434,8 +437,13 @@ export function detectProvidersQuick(bundle: ContextBundle): string[] {
 
     for (const [pattern, provider] of Object.entries(quickChecks)) {
         if (imports.includes(pattern)) {
+            console.log(`  ✅ Detected: ${provider} (pattern: ${pattern})`);
             providers.push(provider);
         }
+    }
+
+    if (providers.length === 0) {
+        console.log(`  ❌ No providers detected in imports`);
     }
 
     return [...new Set(providers)];

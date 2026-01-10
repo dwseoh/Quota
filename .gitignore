@@ -59,6 +59,7 @@ Thumbs.db
 # --- logs ---
 logs/
 *.log
+logs.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
