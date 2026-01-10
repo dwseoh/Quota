@@ -1,98 +1,77 @@
-# Node.js v24 Setup Instructions
+# Node.js v24 Support - UPDATED
 
-## ✅ This project is now configured for Node.js v24!
+## ✅ Better Solution Implemented
 
-A `.npmrc` file has been added to force C++20 compilation for `tree-sitter`.
+The `.npmrc` approach doesn't work because npm doesn't support `cxxflags` directly.
+
+**Instead, use one of these methods:**
 
 ---
 
-## For Your Friend on Node.js v24
+## Method 1: Environment Variable (Recommended)
 
-Just run:
+Your friend should run this **before** `npm install`:
 
 ```bash
-cd vscode-extension
+export CXXFLAGS="-std=c++20"
 npm install
 ```
 
-That's it! The `.npmrc` file will automatically configure C++20 compilation.
+### Make it permanent (optional):
 
----
-
-## What Was Added
-
-**File**: `.npmrc`
-```
-cxxflags=-std=c++20
+Add to `~/.zshrc` or `~/.bashrc`:
+```bash
+echo 'export CXXFLAGS="-std=c++20"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
-This tells npm to compile native modules (like tree-sitter) with C++20 support.
-
 ---
 
-## If It Still Fails
-
-1. **Make sure build tools are installed**:
-   
-   **macOS**:
-   ```bash
-   xcode-select --install
-   ```
-   
-   **Linux**:
-   ```bash
-   sudo apt-get install build-essential
-   ```
-   
-   **Windows**:
-   Install Visual Studio Build Tools
-
-2. **Check compiler supports C++20**:
-   ```bash
-   c++ --version
-   ```
-
-3. **Try clean install**:
-   ```bash
-   rm -rf node_modules package-lock.json
-   npm install
-   ```
-
-4. **Fallback to Node v22** (if still issues):
-   ```bash
-   nvm use 22
-   npm install
-   ```
-
----
-
-## Verification
-
-After `npm install`, test it works:
+## Method 2: One-Line Install
 
 ```bash
-npm run compile
-node test-analyze.js
+CXXFLAGS="-std=c++20" npm install
 ```
 
-Expected output:
+This sets the flag just for that one command.
+
+---
+
+## Method 3: Use Node.js v22 (Easiest)
+
+Honestly, this is still the easiest solution:
+
+```bash
+nvm use 22
+npm install
 ```
-✅ Success!
-⏱️  Duration: 0.01s
-📄 Files: 15
-🔍 Units: 74
-💰 Paid APIs: 16
+
+Node v22 works perfectly without any configuration.
+
+---
+
+## Why .npmrc Didn't Work
+
+- npm doesn't recognize `cxxflags` as a valid config option
+- C++ compiler flags need to be set as environment variables
+- npm can't pass these flags directly to node-gyp
+
+---
+
+## For Your Friend
+
+**Easiest**: Use Node v22
+```bash
+nvm use 22
+npm install
+```
+
+**If they must use Node v24**:
+```bash
+export CXXFLAGS="-std=c++20"
+npm install
 ```
 
 ---
 
-## Why This Works
-
-- Node.js v24 requires C++20 for tree-sitter
-- The `.npmrc` file tells npm to use C++20
-- This happens automatically during `npm install`
-- No manual configuration needed!
-
----
-
-**The project is now Node.js v24 compatible!** 🚀
+**Bottom line**: Node v22 is way easier. Node v24 requires manual environment variable setup.
