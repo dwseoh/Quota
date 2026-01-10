@@ -1,11 +1,11 @@
 {
   "version": "1.0.0",
-  "timestamp": 1768079298930,
+  "timestamp": 1768081998772,
   "files": [
     {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
-      "hash": "6881b9a19b333d7aa0680d01bb794c89",
-      "lastModified": 1768073954644.0796,
+      "hash": "b35e789ea1f4b12a0583225cc36457d1",
+      "lastModified": 1768081988251.3215,
       "units": [
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:18:parseFile",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:35:parseTypeScriptFile",
@@ -16,7 +16,17 @@
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:193:extractClassUnits",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:253:extractPythonFunction",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:284:extractPythonClass",
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:351:bundleContext"
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts:351:bundleContext",
+        "ast_parser.ts:26:parseFile",
+        "ast_parser.ts:52:parseFileWithVSCode",
+        "ast_parser.ts:80:extractUnitsFromSymbol",
+        "ast_parser.ts:124:createCodeUnitFromSymbol",
+        "ast_parser.ts:160:parseTypeScriptFile",
+        "ast_parser.ts:203:extractFunctionFromNode",
+        "ast_parser.ts:230:extractClassFromNode",
+        "ast_parser.ts:285:parsePythonFileBasic",
+        "ast_parser.ts:379:extractImports",
+        "ast_parser.ts:403:bundleContext"
       ]
     },
     {
@@ -1583,6 +1593,216 @@
         "endLine": 52,
         "endColumn": 1
       }
+    },
+    {
+      "id": "ast_parser.ts:26:parseFile",
+      "type": "function",
+      "name": "parseFile",
+      "body": "export async function parseFile(filePath: string): Promise<CodeUnit[]> {\n    const ext = path.extname(filePath);\n\n    // Use VSCode API if available (best option)\n    if (vscode) {\n        try {\n            return await parseFileWithVSCode(filePath);\n        } catch (error) {\n            console.warn(`VSCode API failed, falling back to TypeScript parser:`, error);\n        }\n    }\n\n    // Fallback to TypeScript parser (works for .ts, .js, .py with limited support)\n    if (ext === '.ts' || ext === '.js' || ext === '.tsx' || ext === '.jsx') {\n        return parseTypeScriptFile(filePath);\n    } else if (ext === '.py') {\n        // For Python, we can only do basic regex extraction without tree-sitter\n        return parsePythonFileBasic(filePath);\n    }\n\n    return [];\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 26,
+        "startColumn": 7,
+        "endLine": 47,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:52:parseFileWithVSCode",
+      "type": "function",
+      "name": "parseFileWithVSCode",
+      "body": "async function parseFileWithVSCode(filePath: string): Promise<CodeUnit[]> {\n    const uri = vscode.Uri.file(filePath);\n    const document = await vscode.workspace.openTextDocument(uri);\n\n    const symbols = await vscode.commands.executeCommand<any[]>(\n        'vscode.executeDocumentSymbolProvider',\n        uri\n    );\n\n    if (!symbols || symbols.length === 0) {\n        return [];\n    }\n\n    const content = document.getText();\n    const imports = extractImports(content, path.extname(filePath));\n    const units: CodeUnit[] = [];\n\n    for (const symbol of symbols) {\n        const symbolUnits = extractUnitsFromSymbol(symbol, document, filePath, imports);\n        units.push(...symbolUnits);\n    }\n\n    return units;\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 52,
+        "startColumn": 0,
+        "endLine": 75,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:80:extractUnitsFromSymbol",
+      "type": "function",
+      "name": "extractUnitsFromSymbol",
+      "body": "function extractUnitsFromSymbol(\n    symbol: any,\n    document: any,\n    filePath: string,\n    imports: string[]\n): CodeUnit[] {\n    const units: CodeUnit[] = [];\n    const SymbolKind = vscode.SymbolKind;\n\n    const isFunction = symbol.kind === SymbolKind.Function;\n    const isMethod = symbol.kind === SymbolKind.Method;\n    const isClass = symbol.kind === SymbolKind.Class;\n\n    if (isFunction || isMethod) {\n        const unit = createCodeUnitFromSymbol(symbol, document, filePath, imports, 'function');\n        if (unit) units.push(unit);\n    } else if (isClass) {\n        const classUnit = createCodeUnitFromSymbol(symbol, document, filePath, imports, 'class');\n        if (classUnit) units.push(classUnit);\n\n        if (symbol.children) {\n            for (const child of symbol.children) {\n                if (child.kind === SymbolKind.Method) {\n                    const methodUnit = createCodeUnitFromSymbol(child, document, filePath, imports, 'method', symbol.name);\n                    if (methodUnit) units.push(methodUnit);\n                }\n            }\n        }\n    }\n\n    if (symbol.children) {\n        for (const child of symbol.children) {\n            if (isClass && child.kind === SymbolKind.Method) continue;\n            const childUnits = extractUnitsFromSymbol(child, document, filePath, imports);\n            units.push(...childUnits);\n        }\n    }\n\n    return units;\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 80,
+        "startColumn": 0,
+        "endLine": 119,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:124:createCodeUnitFromSymbol",
+      "type": "function",
+      "name": "createCodeUnitFromSymbol",
+      "body": "function createCodeUnitFromSymbol(\n    symbol: any,\n    document: any,\n    filePath: string,\n    imports: string[],\n    type: 'function' | 'class' | 'method',\n    className?: string\n): CodeUnit | null {\n    try {\n        const range = symbol.range;\n        const body = document.getText(range);\n        const name = className ? `${className}.${symbol.name}` : symbol.name;\n        const id = `${path.basename(filePath)}:${range.start.line + 1}:${name}`;\n\n        return {\n            id,\n            type,\n            name,\n            body,\n            dependencies: imports,\n            location: {\n                fileUri: filePath,\n                startLine: range.start.line + 1,\n                startColumn: range.start.character,\n                endLine: range.end.line + 1,\n                endColumn: range.end.character\n            }\n        };\n    } catch (error) {\n        return null;\n    }\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 124,
+        "startColumn": 0,
+        "endLine": 155,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:160:parseTypeScriptFile",
+      "type": "function",
+      "name": "parseTypeScriptFile",
+      "body": "function parseTypeScriptFile(filePath: string): CodeUnit[] {\n    try {\n        const content = fs.readFileSync(filePath, 'utf-8');\n        const ast = parseTypeScript(content, {\n            ecmaVersion: 2020,\n            sourceType: 'module',\n            loc: true,\n            range: true\n        });\n\n        const units: CodeUnit[] = [];\n        const imports = extractImports(content, path.extname(filePath));\n\n        if (ast.body) {\n            for (const node of ast.body) {\n                if (node.type === 'FunctionDeclaration' && node.id) {\n                    const unit = extractFunctionFromNode(node, content, filePath, imports);\n                    if (unit) units.push(unit);\n                } else if (node.type === 'ClassDeclaration' && node.id) {\n                    const classUnits = extractClassFromNode(node, content, filePath, imports);\n                    units.push(...classUnits);\n                } else if (node.type === 'ExportNamedDeclaration' && node.declaration) {\n                    if (node.declaration.type === 'FunctionDeclaration' && node.declaration.id) {\n                        const unit = extractFunctionFromNode(node.declaration, content, filePath, imports);\n                        if (unit) units.push(unit);\n                    } else if (node.declaration.type === 'ClassDeclaration' && node.declaration.id) {\n                        const classUnits = extractClassFromNode(node.declaration, content, filePath, imports);\n                        units.push(...classUnits);\n                    }\n                }\n            }\n        }\n\n        return units;\n    } catch (error) {\n        console.error(`Error parsing TypeScript file ${filePath}:`, error);\n        return [];\n    }\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 160,
+        "startColumn": 0,
+        "endLine": 198,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:203:extractFunctionFromNode",
+      "type": "function",
+      "name": "extractFunctionFromNode",
+      "body": "function extractFunctionFromNode(node: any, content: string, filePath: string, imports: string[]): CodeUnit | null {\n    if (!node.loc || !node.id) return null;\n\n    const lines = content.split('\\n');\n    const body = lines.slice(node.loc.start.line - 1, node.loc.end.line).join('\\n');\n    const name = node.id.name;\n    const id = `${path.basename(filePath)}:${node.loc.start.line}:${name}`;\n\n    return {\n        id,\n        type: 'function',\n        name,\n        body,\n        dependencies: imports,\n        location: {\n            fileUri: filePath,\n            startLine: node.loc.start.line,\n            startColumn: node.loc.start.column,\n            endLine: node.loc.end.line,\n            endColumn: node.loc.end.column\n        }\n    };\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 203,
+        "startColumn": 0,
+        "endLine": 225,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:230:extractClassFromNode",
+      "type": "function",
+      "name": "extractClassFromNode",
+      "body": "function extractClassFromNode(node: any, content: string, filePath: string, imports: string[]): CodeUnit[] {\n    const units: CodeUnit[] = [];\n    if (!node.loc || !node.id) return units;\n\n    const lines = content.split('\\n');\n    const className = node.id.name;\n\n    // Extract class itself\n    const classBody = lines.slice(node.loc.start.line - 1, node.loc.end.line).join('\\n');\n    units.push({\n        id: `${path.basename(filePath)}:${node.loc.start.line}:${className}`,\n        type: 'class',\n        name: className,\n        body: classBody,\n        dependencies: imports,\n        location: {\n            fileUri: filePath,\n            startLine: node.loc.start.line,\n            startColumn: node.loc.start.column,\n            endLine: node.loc.end.line,\n            endColumn: node.loc.end.column\n        }\n    });\n\n    // Extract methods\n    if (node.body && node.body.body) {\n        for (const member of node.body.body) {\n            if (member.type === 'MethodDefinition' && member.key && member.value.loc) {\n                const methodName = member.key.name || member.key.value;\n                const methodBody = lines.slice(member.value.loc.start.line - 1, member.value.loc.end.line).join('\\n');\n\n                units.push({\n                    id: `${path.basename(filePath)}:${member.value.loc.start.line}:${className}.${methodName}`,\n                    type: 'method',\n                    name: `${className}.${methodName}`,\n                    body: methodBody,\n                    dependencies: imports,\n                    location: {\n                        fileUri: filePath,\n                        startLine: member.value.loc.start.line,\n                        startColumn: member.value.loc.start.column,\n                        endLine: member.value.loc.end.line,\n                        endColumn: member.value.loc.end.column\n                    }\n                });\n            }\n        }\n    }\n\n    return units;\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 230,
+        "startColumn": 0,
+        "endLine": 280,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:285:parsePythonFileBasic",
+      "type": "function",
+      "name": "parsePythonFileBasic",
+      "body": "function parsePythonFileBasic(filePath: string): CodeUnit[] {\n    try {\n        const content = fs.readFileSync(filePath, 'utf-8');\n        const lines = content.split('\\n');\n        const units: CodeUnit[] = [];\n        const imports = extractImports(content, '.py');\n\n        // Match function definitions: def function_name(\n        const functionRegex = /^(async\\s+)?def\\s+(\\w+)\\s*\\(/;\n        // Match class definitions: class ClassName\n        const classRegex = /^class\\s+(\\w+)/;\n\n        for (let i = 0; i < lines.length; i++) {\n            const line = lines[i];\n            const trimmed = line.trim();\n\n            // Function\n            const funcMatch = trimmed.match(functionRegex);\n            if (funcMatch) {\n                const name = funcMatch[2];\n                const startLine = i + 1;\n                // Find end of function (next def/class or dedent)\n                let endLine = startLine;\n                const indent = line.search(/\\S/);\n                for (let j = i + 1; j < lines.length; j++) {\n                    const nextLine = lines[j];\n                    if (nextLine.trim() && nextLine.search(/\\S/) <= indent) {\n                        endLine = j;\n                        break;\n                    }\n                    endLine = j + 1;\n                }\n\n                const body = lines.slice(i, endLine).join('\\n');\n                units.push({\n                    id: `${path.basename(filePath)}:${startLine}:${name}`,\n                    type: 'function',\n                    name,\n                    body,\n                    dependencies: imports,\n                    location: {\n                        fileUri: filePath,\n                        startLine,\n                        startColumn: 0,\n                        endLine,\n                        endColumn: lines[endLine - 1]?.length || 0\n                    }\n                });\n            }\n\n            // Class\n            const classMatch = trimmed.match(classRegex);\n            if (classMatch) {\n                const name = classMatch[1];\n                const startLine = i + 1;\n                let endLine = startLine;\n                const indent = line.search(/\\S/);\n                for (let j = i + 1; j < lines.length; j++) {\n                    const nextLine = lines[j];\n                    if (nextLine.trim() && nextLine.search(/\\S/) <= indent) {\n                        endLine = j;\n                        break;\n                    }\n                    endLine = j + 1;\n                }\n\n                const body = lines.slice(i, endLine).join('\\n');\n                units.push({\n                    id: `${path.basename(filePath)}:${startLine}:${name}`,\n                    type: 'class',\n                    name,\n                    body,\n                    dependencies: imports,\n                    location: {\n                        fileUri: filePath,\n                        startLine,\n                        startColumn: 0,\n                        endLine,\n                        endColumn: lines[endLine - 1]?.length || 0\n                    }\n                });\n            }\n        }\n\n        return units;\n    } catch (error) {\n        console.error(`Error parsing Python file ${filePath}:`, error);\n        return [];\n    }\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 285,
+        "startColumn": 0,
+        "endLine": 374,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:379:extractImports",
+      "type": "function",
+      "name": "extractImports",
+      "body": "function extractImports(content: string, ext: string): string[] {\n    const imports: string[] = [];\n    const lines = content.split('\\n');\n\n    if (ext === '.py') {\n        for (const line of lines) {\n            if (line.trim().startsWith('import ') || line.trim().startsWith('from ')) {\n                imports.push(line.trim());\n            }\n        }\n    } else {\n        for (const line of lines) {\n            if (line.trim().startsWith('import ') || line.trim().startsWith('export ')) {\n                imports.push(line.trim());\n            }\n        }\n    }\n\n    return imports;\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 379,
+        "startColumn": 0,
+        "endLine": 398,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "ast_parser.ts:403:bundleContext",
+      "type": "function",
+      "name": "bundleContext",
+      "body": "export function bundleContext(unit: CodeUnit): ContextBundle {\n    return {\n        code: unit.body,\n        imports: unit.dependencies.join('\\n'),\n        location: unit.location\n    };\n}",
+      "dependencies": [
+        "import * as fs from 'fs';",
+        "import * as path from 'path';",
+        "import { parse as parseTypeScript } from '@typescript-eslint/parser';",
+        "import { CodeUnit, LocationMetadata, ContextBundle } from './types';",
+        "export async function parseFile(filePath: string): Promise<CodeUnit[]> {",
+        "export function bundleContext(unit: CodeUnit): ContextBundle {"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
+        "startLine": 403,
+        "startColumn": 7,
+        "endLine": 409,
+        "endColumn": 1
+      }
     }
   ],
   "classifications": {
@@ -1995,6 +2215,66 @@
       "confidence": 0
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js:8:test": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:26:parseFile": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:52:parseFileWithVSCode": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:80:extractUnitsFromSymbol": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:124:createCodeUnitFromSymbol": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:160:parseTypeScriptFile": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:203:extractFunctionFromNode": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:230:extractClassFromNode": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:285:parsePythonFileBasic": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:379:extractImports": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "ast_parser.ts:403:bundleContext": {
       "role": "none",
       "category": "other",
       "provider": "unknown",
