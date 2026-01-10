@@ -7,10 +7,19 @@ import * as vscode from 'vscode';
 import { cost_codelens_provider } from './codelens_provider';
 import { cost_tree_provider } from './treeview_provider';
 import { llm_call } from './types';
-// import { parse_llm_calls } from './parser'; // TODO: uncomment when person 1 finishes
+import { initializeParser, indexWorkspace } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('cost-tracker extension is now active');
+
+  // Get workspace root
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    vscode.window.showWarningMessage('Cost Tracker: No workspace folder found');
+    return;
+  }
+
+  const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
   // --- person 2's registration: codelens provider ---
   const codelens_provider = new cost_codelens_provider();
@@ -30,6 +39,35 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: tree_provider
   });
   context.subscriptions.push(tree_view);
+
+  // Initialize parser system
+  initializeParser(workspaceRoot).then(() => {
+    console.log('Parser system initialized');
+
+    // Run initial workspace indexing in background
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: 'Cost Tracker: Indexing workspace...',
+      cancellable: false
+    }, async (progress) => {
+      try {
+        progress.report({ increment: 0, message: 'Scanning files...' });
+        await indexWorkspace(workspaceRoot);
+        progress.report({ increment: 100, message: 'Complete!' });
+        vscode.window.showInformationMessage('Cost Tracker: Workspace indexed successfully');
+
+        // Refresh providers after indexing
+        codelens_provider.refresh();
+        tree_provider.refresh();
+      } catch (error) {
+        console.error('Error during workspace indexing:', error);
+        vscode.window.showErrorMessage(`Cost Tracker: Indexing failed - ${error}`);
+      }
+    });
+  }).catch(error => {
+    console.error('Failed to initialize parser:', error);
+    vscode.window.showErrorMessage(`Cost Tracker: Parser initialization failed - ${error}`);
+  });
 
   // --- commands ---
 
@@ -72,13 +110,22 @@ export function activate(context: vscode.ExtensionContext) {
   // command to refresh analysis
   const refresh_cmd = vscode.commands.registerCommand(
     'cost-tracker.refresh',
-    () => {
-      if (vscode.window.activeTextEditor) {
-        update_providers(vscode.window.activeTextEditor.document);
-      }
-      codelens_provider.refresh();
-      tree_provider.refresh();
-      vscode.window.showInformationMessage('Cost analysis refreshed');
+    async () => {
+      // Re-index workspace
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Cost Tracker: Re-indexing workspace...',
+        cancellable: false
+      }, async (progress) => {
+        try {
+          await indexWorkspace(workspaceRoot);
+          codelens_provider.refresh();
+          tree_provider.refresh();
+          vscode.window.showInformationMessage('Cost analysis refreshed');
+        } catch (error) {
+          vscode.window.showErrorMessage(`Refresh failed: ${error}`);
+        }
+      });
     }
   );
   context.subscriptions.push(refresh_cmd);
@@ -109,61 +156,51 @@ export function activate(context: vscode.ExtensionContext) {
 
   // --- document listeners ---
 
-  // helper function to update all providers with parsed data
-  const update_providers = (document: vscode.TextDocument) => {
-    // only process supported file types
-    const supported_languages = ['python', 'typescript', 'javascript'];
-    if (!supported_languages.includes(document.languageId)) {
-      return;
-    }
-
-    // TODO: when person 1 finishes parser, uncomment this:
-    // const calls = parse_llm_calls(document);
-    // tree_provider.update_calls(calls);
-
-    // for now, just refresh to show mock data
-    codelens_provider.refresh();
-    tree_provider.refresh();
-  };
-
-  // debounced refresh to avoid spamming on each keystroke
-  let refreshTimer: NodeJS.Timeout | undefined;
-  const debouncedRefresh = (document?: vscode.TextDocument) => {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => {
-      if (document) {
-        update_providers(document);
-      } else if (vscode.window.activeTextEditor) {
-        update_providers(vscode.window.activeTextEditor.document);
-      }
-    }, 200);
-  };
-
-  // listen for document changes to update analysis
+  // listen for document changes (debounced for performance)
+  let changeTimer: NodeJS.Timeout | undefined;
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
-      debouncedRefresh(event.document);
+      // Debounce: only refresh codelens on typing
+      if (changeTimer) clearTimeout(changeTimer);
+      changeTimer = setTimeout(() => {
+        codelens_provider.refresh();
+      }, 300);
     })
   );
 
+  // re-index on save for incremental updates
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(async (document) => {
+      const filePath = document.uri.fsPath;
+      if (filePath.endsWith('.py') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
+        try {
+          await indexWorkspace(workspaceRoot);
+          codelens_provider.refresh();
+          tree_provider.refresh();
+        } catch (error) {
+          console.error('Error re-indexing on save:', error);
+        }
+      }
+    })
+  );
+
+  // refresh on document open
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      debouncedRefresh(document);
+      codelens_provider.refresh();
+      tree_provider.refresh();
     })
   );
 
+  // refresh on active editor change
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
-        debouncedRefresh(editor.document);
+        codelens_provider.refresh();
+        tree_provider.refresh();
       }
     })
   );
-
-  // analyze currently active document on activation
-  if (vscode.window.activeTextEditor) {
-    update_providers(vscode.window.activeTextEditor.document);
-  }
 }
 
 export function deactivate() {
