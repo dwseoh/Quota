@@ -54,14 +54,14 @@
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.2",
+    "tree-sitter": "^0.25.0",
+    "tree-sitter-python": "^0.25.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.52.0"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@typescript-eslint/parser": "^8.52.0",
-    "dotenv": "^17.2.3",
-    "tree-sitter": "^0.25.0",
-    "tree-sitter-python": "^0.25.0"
+    "dotenv": "^17.2.3"
   }
 }

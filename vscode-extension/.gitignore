@@ -3,3 +3,6 @@ dist
 node_modules
 .vscode-test/
 *.vsix
+
+# NPM configuration (keep for Node v24 compatibility)
+# .npmrc

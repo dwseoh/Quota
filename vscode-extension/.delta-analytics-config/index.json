@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "timestamp": 1768078001987,
+  "timestamp": 1768079298930,
   "files": [
     {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
@@ -152,14 +152,6 @@
       "lastModified": 1768077997385.4453,
       "units": [
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js:8:test"
-      ]
-    },
-    {
-      "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test.js",
-      "hash": "d4164e698114f44eaa79eaed2fccb156",
-      "lastModified": 1768076308138.1401,
-      "units": [
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test.js:11:test"
       ]
     },
     {
