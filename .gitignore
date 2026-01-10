@@ -1,0 +1,88 @@
+# --- node / npm ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# --- build outputs ---
+dist/
+out/
+build/
+*.js.map
+*.d.ts.map
+
+# --- vscode extension specific ---
+vscode-extension/out/
+vscode-extension/*.vsix
+
+# --- environment variables ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- api keys (extra safety) ---
+*.key
+*.pem
+secrets/
+.secrets/
+
+# --- os files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- ide / editor ---
+.vscode/
+.agent/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- logs ---
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# --- testing ---
+coverage/
+.nyc_output/
+*.lcov
+.coverage
+
+# --- temp files ---
+tmp/
+temp/
+*.tmp
+*.bak
+
+# --- next.js (for sprint 2 web dashboard) ---
+.next/
+.vercel/
+.turbo/
+
+# --- database (for sprint 2) ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- misc ---
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
