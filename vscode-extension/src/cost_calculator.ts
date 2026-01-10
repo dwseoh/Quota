@@ -3,16 +3,27 @@
  * calculates token estimates and costs for llm calls
  */
 
-import { llm_call, pricing_table, cost_breakdown } from './types';
+import { llm_call, pricing_table, cost_breakdown, pricing_info } from './types';
 
 /**
  * hardcoded pricing table (accurate as of jan 2025)
  */
 export const pricing: pricing_table = {
+  // OpenAI
   'gpt-4': { input: 0.03, output: 0.06 },
+  'gpt-4-32k': { input: 0.045, output: 0.09 },
+  'gpt-4o': { input: 0.02, output: 0.04 },
   'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
+
+  // Anthropic
   'claude-sonnet-4': { input: 0.003, output: 0.015 },
-  'claude-haiku': { input: 0.00025, output: 0.00125 }
+  'claude-haiku': { input: 0.00025, output: 0.00125 },
+
+  // Gemini / Google (approximate — verify with provider)
+  'gemini-1.0': { input: 0.002, output: 0.01 },
+  'gemini-2': { input: 0.006, output: 0.012 },
+  'gemini-3': { input: 0.012, output: 0.024 },
+  'gemini-3-pro': { input: 0.015, output: 0.03 }
 };
 
 /**
@@ -48,6 +59,7 @@ export function calculate_cost(model: string, tokens: number): number {
  * @param output_tokens - output token count (optional)
  * @returns detailed cost breakdown
  */
+
 export function get_cost_breakdown(
   model: string,
   input_tokens: number,
@@ -74,4 +86,26 @@ export function get_cost_breakdown(
     output_cost,
     total_cost: input_cost + output_cost
   };
+}
+
+/**
+ * Get the pricing info for a model (returns undefined if not supported)
+ */
+export function get_model_pricing(model: string): pricing_info | undefined {
+  return pricing[model];
+}
+
+/**
+ * List supported model names
+ */
+export function supported_models(): string[] {
+  return Object.keys(pricing);
+}
+
+/**
+ * Calculate the total cost (input + output) for a model given token counts
+ */
+export function calculate_total_cost(model: string, input_tokens: number, output_tokens: number = 0): number {
+  const breakdown = get_cost_breakdown(model, input_tokens, output_tokens);
+  return breakdown.total_cost;
 }
