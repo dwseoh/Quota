@@ -58,13 +58,23 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
     for (const filePath of modifiedFilePaths) {
       console.log(`\n📄 Parsing ${filePath}...`);
 
-      // Remove old units from this file
-      const fileUnits = allUnits.filter(u => u.location.fileUri !== filePath);
-
+      // Remove old units from this file (keep units from other files)
+      const unitsFromOtherFiles = allUnits.filter(u => u.location.fileUri !== filePath);
+      
       // Parse and add new units
       const newUnits = await parseFile(filePath);
       console.log(`  Found ${newUnits.length} code units`);
-      allUnits.push(...newUnits);
+      
+      // Replace allUnits with units from other files + new units from this file
+      allUnits.length = 0; // Clear array
+      allUnits.push(...unitsFromOtherFiles, ...newUnits);
+      
+      // Remove old classifications for units from this file
+      for (const unitId in allClassifications) {
+        if (unitId.includes(path.basename(filePath))) {
+          delete allClassifications[unitId];
+        }
+      }
 
       // Prepare units for batch classification
       for (const unit of newUnits) {

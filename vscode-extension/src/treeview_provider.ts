@@ -195,7 +195,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     
     // action button to update user count
     items.push(new cost_tree_item(
-      '✏️ Update User Count',
+      'Update User Count',
       vscode.TreeItemCollapsibleState.None,
       'action_button'
     ));

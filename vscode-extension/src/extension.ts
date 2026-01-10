@@ -252,17 +252,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   // --- document listeners ---
 
-  // listen for document changes (debounced for performance)
-  let changeTimer: NodeJS.Timeout | undefined;
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      // Debounce: only refresh codelens on typing
-      if (changeTimer) clearTimeout(changeTimer);
-      changeTimer = setTimeout(() => {
-        codelens_provider.refresh();
-      }, 300);
-    })
-  );
+  // Note: We don't refresh CodeLens on typing because parse_llm_calls() uses
+  // the cached graph which only updates on save. Refreshing on typing would
+  // cause duplicate/stale CodeLens to appear.
 
   // re-index on save for incremental updates
   context.subscriptions.push(
