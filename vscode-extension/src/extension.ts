@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { cost_codelens_provider } from './codelens_provider';
 import { cost_tree_provider } from './treeview_provider';
+import { llm_call } from './types';
 // import { parse_llm_calls } from './parser'; // TODO: uncomment when person 1 finishes
 
 export function activate(context: vscode.ExtensionContext) {
@@ -15,9 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
   const codelens_provider = new cost_codelens_provider();
   const codelens_disposable = vscode.languages.registerCodeLensProvider(
     [
-      { language: 'python' },
-      { language: 'typescript' },
-      { language: 'javascript' }
+      { language: 'python', scheme: 'file' },
+      { language: 'typescript', scheme: 'file' },
+      { language: 'javascript', scheme: 'file' }
     ],
     codelens_provider
   );
@@ -31,13 +32,18 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(tree_view);
 
   // --- commands ---
-  
+
   // command to show cost details (used by codelens)
   const show_details_cmd = vscode.commands.registerCommand(
     'cost-tracker.showCostDetails',
-    (call) => {
+    (call: llm_call) => {
       vscode.window.showInformationMessage(
-        `Cost Details:\nModel: ${call.model}\nTokens: ~${call.estimated_tokens}\nCost: ~$${call.estimated_cost.toFixed(4)}`
+        `Cost Details:\n` +
+          `Provider: ${call.provider}\n` +
+          `Model: ${call.model}\n` +
+          `Line: ${call.line}\n` +
+          `Tokens: ~${call.estimated_tokens}\n` +
+          `Cost: ~$${Number(call.estimated_cost ?? 0).toFixed(4)}`
       );
     }
   );
@@ -54,9 +60,10 @@ export function activate(context: vscode.ExtensionContext) {
           return isNaN(Number(value)) ? 'Please enter a valid number' : null;
         }
       });
-      
+
       if (input) {
         tree_provider.update_user_count(Number(input));
+        tree_provider.refresh();
       }
     }
   );
@@ -75,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(refresh_cmd);
-  
+
   // command to toggle mock data (for testing)
   const toggle_mock_cmd = vscode.commands.registerCommand(
     'cost-tracker.toggleMockData',
@@ -85,7 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(toggle_mock_cmd);
-  
+
   // command to show call details from tree item
   const show_call_details_cmd = vscode.commands.registerCommand(
     'cost-tracker.showCallDetails',
@@ -101,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(show_call_details_cmd);
 
   // --- document listeners ---
-  
+
   // helper function to update all providers with parsed data
   const update_providers = (document: vscode.TextDocument) => {
     // only process supported file types
@@ -109,25 +116,50 @@ export function activate(context: vscode.ExtensionContext) {
     if (!supported_languages.includes(document.languageId)) {
       return;
     }
-    
+
     // TODO: when person 1 finishes parser, uncomment this:
     // const calls = parse_llm_calls(document);
     // tree_provider.update_calls(calls);
-    
+
     // for now, just refresh to show mock data
     codelens_provider.refresh();
     tree_provider.refresh();
   };
-  
-  // listen for document changes to update analysis
-  vscode.workspace.onDidChangeTextDocument((event) => {
-    update_providers(event.document);
-  });
 
-  vscode.workspace.onDidOpenTextDocument((document) => {
-    update_providers(document);
-  });
-  
+  // debounced refresh to avoid spamming on each keystroke
+  let refreshTimer: NodeJS.Timeout | undefined;
+  const debouncedRefresh = (document?: vscode.TextDocument) => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      if (document) {
+        update_providers(document);
+      } else if (vscode.window.activeTextEditor) {
+        update_providers(vscode.window.activeTextEditor.document);
+      }
+    }, 200);
+  };
+
+  // listen for document changes to update analysis
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      debouncedRefresh(event.document);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      debouncedRefresh(document);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) {
+        debouncedRefresh(editor.document);
+      }
+    })
+  );
+
   // analyze currently active document on activation
   if (vscode.window.activeTextEditor) {
     update_providers(vscode.window.activeTextEditor.document);
