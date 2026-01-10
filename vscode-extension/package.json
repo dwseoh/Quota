@@ -10,10 +10,14 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:python",
-    "onLanguage:typescript",
-    "onLanguage:javascript"
-  ],
+  "onLanguage:python",
+  "onLanguage:typescript",
+  "onLanguage:javascript",
+  "onCommand:cost-tracker.showCostDetails",
+  "onCommand:cost-tracker.updateUserCount",
+  "onCommand:cost-tracker.refresh"
+]
+,
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
