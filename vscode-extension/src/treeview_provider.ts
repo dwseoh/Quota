@@ -253,6 +253,13 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   }
 
   /**
+   * get current user count
+   */
+  get_user_count(): number {
+    return this.user_count;
+  }
+
+  /**
    * toggle mock data (for testing)
    */
   toggle_mock_data(): void {
