@@ -78,7 +78,9 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
 
       const bundles = newUnitsToClassify.map(item => item.bundle);
       const { batchClassifyApis } = await import('./intelligence.js');
-      const classifications = await batchClassifyApis(bundles);
+      // Use quick detection by default (no Gemini API calls)
+      // To enable Gemini: pass false as second parameter
+      const classifications = await batchClassifyApis(bundles, true);
 
       // Map classifications back to units
       for (let i = 0; i < newUnitsToClassify.length; i++) {
@@ -238,135 +240,135 @@ export function clearCache(): void {
  * ```
  */
 export async function analyzeWorkspace(
-    workspaceRoot: string,
-    options: {
-        useGemini?: boolean;          // Use Gemini classification (default: true for quick detection)
-        scope?: string;               // Limit to specific directory
-        forceClean?: boolean;         // Remove existing index
-        geminiApiKey?: string;        // Gemini API key (optional, reads from env)
-        onProgress?: (message: string) => void;  // Progress callback
-    } = {}
+  workspaceRoot: string,
+  options: {
+    useGemini?: boolean;          // Use Gemini classification (default: true for quick detection)
+    scope?: string;               // Limit to specific directory
+    forceClean?: boolean;         // Remove existing index
+    geminiApiKey?: string;        // Gemini API key (optional, reads from env)
+    onProgress?: (message: string) => void;  // Progress callback
+  } = {}
 ): Promise<{
-    success: boolean;
-    graph: CodespaceGraph;
-    stats: {
-        filesIndexed: number;
-        codeUnits: number;
-        classifications: number;
-        totalApis: number;
-        byCategory: Record<string, number>;
-        byProvider: Record<string, number>;
-    };
-    sampleDetections: Array<{
-        name: string;
-        file: string;
-        line: number;
-        provider: string;
-        category: string;
-        confidence: number;
-    }>;
-    duration: number;
-    error?: string;
+  success: boolean;
+  graph: CodespaceGraph;
+  stats: {
+    filesIndexed: number;
+    codeUnits: number;
+    classifications: number;
+    totalApis: number;
+    byCategory: Record<string, number>;
+    byProvider: Record<string, number>;
+  };
+  sampleDetections: Array<{
+    name: string;
+    file: string;
+    line: number;
+    provider: string;
+    category: string;
+    confidence: number;
+  }>;
+  duration: number;
+  error?: string;
 }> {
-    const startTime = Date.now();
-    const progress = options.onProgress || (() => { });
+  const startTime = Date.now();
+  const progress = options.onProgress || (() => { });
 
-    try {
-        // Clean index if requested
-        if (options.forceClean) {
-            progress('Cleaning existing index...');
-            const analyticsDir = path.join(workspaceRoot, '.delta-analytics-config');
-            if (fs.existsSync(analyticsDir)) {
-                fs.rmSync(analyticsDir, { recursive: true, force: true });
-                progress('Removed .delta-analytics-config/');
-            }
-        }
-
-        // Initialize parser
-        progress('Initializing parser...');
-        await initializeParser(workspaceRoot, options.geminiApiKey);
-        progress('Parser initialized');
-
-        // Index workspace
-        progress('Starting workspace indexing...');
-        const graph = await indexWorkspace(workspaceRoot);
-        progress('Indexing complete');
-
-        // Calculate statistics
-        const stats = {
-            filesIndexed: graph.files.length,
-            codeUnits: graph.units.length,
-            classifications: Object.keys(graph.classifications).length,
-            totalApis: 0,
-            byCategory: {} as Record<string, number>,
-            byProvider: {} as Record<string, number>
-        };
-
-        // Analyze classifications
-        for (const [unitId, classification] of Object.entries(graph.classifications)) {
-            if (classification.role === 'consumer' && classification.category !== 'other') {
-                stats.totalApis++;
-
-                // Count by category
-                if (!stats.byCategory[classification.category]) {
-                    stats.byCategory[classification.category] = 0;
-                }
-                stats.byCategory[classification.category]++;
-
-                // Count by provider
-                if (!stats.byProvider[classification.provider]) {
-                    stats.byProvider[classification.provider] = 0;
-                }
-                stats.byProvider[classification.provider]++;
-            }
-        }
-
-        // Get sample detections
-        const sampleDetections = graph.units
-            .filter(u => {
-                const c = graph.classifications[u.id];
-                return c && c.role === 'consumer' && c.category !== 'other';
-            })
-            .slice(0, 10)
-            .map(u => {
-                const c = graph.classifications[u.id];
-                return {
-                    name: u.name,
-                    file: path.basename(u.location.fileUri),
-                    line: u.location.startLine,
-                    provider: c.provider,
-                    category: c.category,
-                    confidence: c.confidence
-                };
-            });
-
-        const duration = (Date.now() - startTime) / 1000;
-        progress(`Analysis complete in ${duration.toFixed(2)}s`);
-
-        return {
-            success: true,
-            graph,
-            stats,
-            sampleDetections,
-            duration
-        };
-
-    } catch (error) {
-        const duration = (Date.now() - startTime) / 1000;
-        return {
-            success: false,
-            graph: { version: '1.0.0', timestamp: Date.now(), files: [], units: [], classifications: {} },
-            stats: {
-                filesIndexed: 0,
-                codeUnits: 0,
-                classifications: 0,
-                totalApis: 0,
-                byCategory: {},
-                byProvider: {}
-            },
-            sampleDetections: [],
-            duration,
-            error: error instanceof Error ? error.message : String(error)
-        };
+  try {
+    // Clean index if requested
+    if (options.forceClean) {
+      progress('Cleaning existing index...');
+      const analyticsDir = path.join(workspaceRoot, '.delta-analytics-config');
+      if (fs.existsSync(analyticsDir)) {
+        fs.rmSync(analyticsDir, { recursive: true, force: true });
+        progress('Removed .delta-analytics-config/');
+      }
     }
+
+    // Initialize parser
+    progress('Initializing parser...');
+    await initializeParser(workspaceRoot, options.geminiApiKey);
+    progress('Parser initialized');
+
+    // Index workspace
+    progress('Starting workspace indexing...');
+    const graph = await indexWorkspace(workspaceRoot);
+    progress('Indexing complete');
+
+    // Calculate statistics
+    const stats = {
+      filesIndexed: graph.files.length,
+      codeUnits: graph.units.length,
+      classifications: Object.keys(graph.classifications).length,
+      totalApis: 0,
+      byCategory: {} as Record<string, number>,
+      byProvider: {} as Record<string, number>
+    };
+
+    // Analyze classifications
+    for (const [unitId, classification] of Object.entries(graph.classifications)) {
+      if (classification.role === 'consumer' && classification.category !== 'other') {
+        stats.totalApis++;
+
+        // Count by category
+        if (!stats.byCategory[classification.category]) {
+          stats.byCategory[classification.category] = 0;
+        }
+        stats.byCategory[classification.category]++;
+
+        // Count by provider
+        if (!stats.byProvider[classification.provider]) {
+          stats.byProvider[classification.provider] = 0;
+        }
+        stats.byProvider[classification.provider]++;
+      }
+    }
+
+    // Get sample detections
+    const sampleDetections = graph.units
+      .filter(u => {
+        const c = graph.classifications[u.id];
+        return c && c.role === 'consumer' && c.category !== 'other';
+      })
+      .slice(0, 10)
+      .map(u => {
+        const c = graph.classifications[u.id];
+        return {
+          name: u.name,
+          file: path.basename(u.location.fileUri),
+          line: u.location.startLine,
+          provider: c.provider,
+          category: c.category,
+          confidence: c.confidence
+        };
+      });
+
+    const duration = (Date.now() - startTime) / 1000;
+    progress(`Analysis complete in ${duration.toFixed(2)}s`);
+
+    return {
+      success: true,
+      graph,
+      stats,
+      sampleDetections,
+      duration
+    };
+
+  } catch (error) {
+    const duration = (Date.now() - startTime) / 1000;
+    return {
+      success: false,
+      graph: { version: '1.0.0', timestamp: Date.now(), files: [], units: [], classifications: {} },
+      stats: {
+        filesIndexed: 0,
+        codeUnits: 0,
+        classifications: 0,
+        totalApis: 0,
+        byCategory: {},
+        byProvider: {}
+      },
+      sampleDetections: [],
+      duration,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }

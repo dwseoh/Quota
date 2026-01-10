@@ -227,12 +227,54 @@ export function extractApiPatterns(bundle: ContextBundle): {
 /**
  * Batch classify multiple code units with Gemini (optimized)
  * @param bundles - array of context bundles to classify
+ * @param useQuickDetection - if true, use regex-based detection (default: true)
  * @returns array of classifications
  */
 export async function batchClassifyApis(
-    bundles: ContextBundle[]
+    bundles: ContextBundle[],
+    useQuickDetection: boolean = true
 ): Promise<ApiClassification[]> {
-    if (!genAI || bundles.length === 0) {
+    if (bundles.length === 0) {
+        return [];
+    }
+
+    // Fast path: use quick detection for all bundles
+    if (useQuickDetection) {
+        console.log(`Using quick regex detection for ${bundles.length} units (no API calls)...`);
+        return bundles.map(bundle => {
+            const providers = detectProvidersQuick(bundle);
+
+            if (providers.length > 0) {
+                let category: 'llm' | 'payment' | 'database' | 'other' = 'other';
+                const provider = providers[0];
+
+                if (['openai', 'anthropic', 'gemini'].includes(provider)) {
+                    category = 'llm';
+                } else if (['stripe', 'paypal'].includes(provider)) {
+                    category = 'payment';
+                } else if (['mongodb', 'postgresql', 'mysql'].includes(provider)) {
+                    category = 'database';
+                }
+
+                return {
+                    role: 'consumer',
+                    category: category,
+                    provider: provider,
+                    confidence: 0.85
+                };
+            }
+
+            return {
+                role: 'none',
+                category: 'other',
+                provider: 'unknown',
+                confidence: 0
+            };
+        });
+    }
+
+    // Gemini path: batch classify with AI
+    if (!genAI) {
         return bundles.map(() => ({
             role: 'none',
             category: 'other',

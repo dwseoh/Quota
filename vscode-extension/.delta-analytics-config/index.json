@@ -1,15 +1,7 @@
 {
   "version": "1.0.0",
-  "timestamp": 1768077458514,
+  "timestamp": 1768078001987,
   "files": [
-    {
-      "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js",
-      "hash": "aa7b3c12eaef2a50cf34c32c9782ac22",
-      "lastModified": 1768077384747.998,
-      "units": [
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/run-parser.js:81:run"
-      ]
-    },
     {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/ast_parser.ts",
       "hash": "6881b9a19b333d7aa0680d01bb794c89",
@@ -58,8 +50,8 @@
     },
     {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
-      "hash": "459f80aeb5f131f15e7627fadd3fd198",
-      "lastModified": 1768076227287.2122,
+      "hash": "37963a73b7e9c3ff33620289f8da9fdf",
+      "lastModified": 1768077924935.9429,
       "units": [
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:20:initializeGemini",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:38:classifyApiUsage",
@@ -69,13 +61,22 @@
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:232:batchClassifyApis",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:279:buildBatchClassificationPrompt",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:317:parseBatchResponse",
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:376:detectProvidersQuick"
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:376:detectProvidersQuick",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:20:initializeGemini",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:38:classifyApiUsage",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:104:buildClassificationPrompt",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:137:parseClassificationResponse",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:176:extractApiPatterns",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:233:batchClassifyApis",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:321:buildBatchClassificationPrompt",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:359:parseBatchResponse",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:418:detectProvidersQuick"
       ]
     },
     {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
-      "hash": "e00239fd6b746a5a701de5aba9222c2e",
-      "lastModified": 1768076288019.9436,
+      "hash": "9540190a051c0cf1b1031f764baaa7bd",
+      "lastModified": 1768077891229.7795,
       "units": [
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:22:initializeParser",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:33:indexWorkspace",
@@ -83,7 +84,15 @@
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:171:extractModelFromCode",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:189:extractPromptFromCode",
         "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:208:getCachedGraph",
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:215:clearCache"
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:215:clearCache",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:24:initializeParser",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:35:indexWorkspace",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:130:parse_llm_calls",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:175:extractModelFromCode",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:193:extractPromptFromCode",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:212:getCachedGraph",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:219:clearCache",
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:242:analyzeWorkspace"
       ]
     },
     {
@@ -138,6 +147,14 @@
       "units": []
     },
     {
+      "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js",
+      "hash": "cfcf4f212ca7f57d7998033729b1619d",
+      "lastModified": 1768077997385.4453,
+      "units": [
+        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js:8:test"
+      ]
+    },
+    {
       "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test.js",
       "hash": "d4164e698114f44eaa79eaed2fccb156",
       "lastModified": 1768076308138.1401,
@@ -162,22 +179,6 @@
       "hash": "ae90048e8f98d7c23283b2b8d9500e26",
       "lastModified": 1768072250530.2864,
       "units": []
-    },
-    {
-      "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test_parser.js",
-      "hash": "fc43591635b64f587af883b80f080efb",
-      "lastModified": 1768074401232.52,
-      "units": [
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test_parser.js:45:runTest"
-      ]
-    },
-    {
-      "path": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test_parser_no_gemini.js",
-      "hash": "ffceef119ba9baa69c45053d57214ef9",
-      "lastModified": 1768074401235.2734,
-      "units": [
-        "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test_parser_no_gemini.js:43:runTest"
-      ]
     }
   ],
   "units": [
@@ -1222,6 +1223,374 @@
         "endLine": 106,
         "endColumn": 1
       }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:20:initializeGemini",
+      "type": "function",
+      "name": "initializeGemini",
+      "body": "function initializeGemini(apiKey?: string): void {\n    const key = apiKey || process.env.GEMINI_API_KEY;\n\n    if (!key) {\n        console.warn('GEMINI_API_KEY not found. API classification will be disabled.');\n        return;\n    }\n\n    genAI = new GoogleGenerativeAI(key);\n    console.log('Gemini API initialized successfully');\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 20,
+        "startColumn": 7,
+        "endLine": 30,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:38:classifyApiUsage",
+      "type": "function",
+      "name": "classifyApiUsage",
+      "body": "async function classifyApiUsage(\n    bundle: ContextBundle,\n    useQuickDetection: boolean = true\n): Promise<ApiClassification> {\n    // Fast path: use regex-based detection\n    if (useQuickDetection) {\n        const providers = detectProvidersQuick(bundle);\n\n        if (providers.length > 0) {\n            // Determine category based on provider\n            let category: 'llm' | 'payment' | 'database' | 'other' = 'other';\n            const provider = providers[0]; // Use first detected provider\n\n            if (['openai', 'anthropic', 'gemini'].includes(provider)) {\n                category = 'llm';\n            } else if (['stripe', 'paypal'].includes(provider)) {\n                category = 'payment';\n            } else if (['mongodb', 'postgresql', 'mysql'].includes(provider)) {\n                category = 'database';\n            }\n\n            return {\n                role: 'consumer',\n                category: category,\n                provider: provider,\n                confidence: 0.85 // High confidence for regex matches\n            };\n        }\n    }\n\n    // Return default if Gemini not initialized\n    if (!genAI) {\n        return {\n            role: 'none',\n            category: 'other',\n            provider: 'unknown',\n            confidence: 0\n        };\n    }\n\n    try {\n        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });\n\n        const prompt = buildClassificationPrompt(bundle);\n        const result = await model.generateContent(prompt);\n        const response = result.response.text();\n\n        // Parse JSON response\n        const classification = parseClassificationResponse(response);\n        return classification;\n    } catch (error) {\n        console.error('Error classifying API usage:', error);\n        return {\n            role: 'none',\n            category: 'other',\n            provider: 'unknown',\n            confidence: 0\n        };\n    }\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 38,
+        "startColumn": 7,
+        "endLine": 97,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:104:buildClassificationPrompt",
+      "type": "function",
+      "name": "buildClassificationPrompt",
+      "body": "function buildClassificationPrompt(bundle: ContextBundle): string {\n    return `Analyze this code and classify its API usage.\n\nCode:\n\\`\\`\\`\n${bundle.code}\n\\`\\`\\`\n\nDependencies:\n\\`\\`\\`\n${bundle.imports}\n\\`\\`\\`\n\nTasks:\n1. Determine if this code is a \"consumer\" (calls external APIs), \"provider\" (defines API endpoints), or \"none\" (neither).\n2. Identify the API category: \"llm\", \"payment\", \"weather\", \"database\", or \"other\".\n3. Identify the specific provider (e.g., \"openai\", \"anthropic\", \"stripe\", \"aws\", \"mongodb\").\n4. Provide a confidence score between 0 and 1.\n\nReturn ONLY a JSON object in this exact format (no markdown, no explanation):\n{\n  \"role\": \"consumer|provider|none\",\n  \"category\": \"llm|payment|weather|database|other\",\n  \"provider\": \"provider_name\",\n  \"confidence\": 0.95\n}`;\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 104,
+        "startColumn": 0,
+        "endLine": 130,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:137:parseClassificationResponse",
+      "type": "function",
+      "name": "parseClassificationResponse",
+      "body": "function parseClassificationResponse(response: string): ApiClassification {\n    try {\n        // Remove markdown code blocks if present\n        let cleaned = response.trim();\n        if (cleaned.startsWith('```json')) {\n            cleaned = cleaned.replace(/```json\\n?/g, '').replace(/```\\n?/g, '');\n        } else if (cleaned.startsWith('```')) {\n            cleaned = cleaned.replace(/```\\n?/g, '');\n        }\n\n        const parsed = JSON.parse(cleaned);\n\n        return {\n            role: parsed.role || 'none',\n            category: parsed.category || 'other',\n            provider: parsed.provider || 'unknown',\n            confidence: parsed.confidence || 0\n        };\n    } catch (error) {\n        console.error('Error parsing classification response:', error);\n        return {\n            role: 'none',\n            category: 'other',\n            provider: 'unknown',\n            confidence: 0\n        };\n    }\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 137,
+        "startColumn": 0,
+        "endLine": 164,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:176:extractApiPatterns",
+      "type": "function",
+      "name": "extractApiPatterns",
+      "body": "function extractApiPatterns(bundle: ContextBundle): {\n    imports: string[];\n    apiCalls: string[];\n    keywords: string[];\n} {\n    const patterns = {\n        imports: [] as string[],\n        apiCalls: [] as string[],\n        keywords: [] as string[]\n    };\n\n    // Extract import statements (already have these)\n    patterns.imports = bundle.imports.split('\\n').filter(i => i.trim());\n\n    // Extract potential API calls (function calls that look like API usage)\n    const apiCallPatterns = [\n        /(\\w+)\\.(\\w+)\\([^)]*\\)/g,           // object.method()\n        /await\\s+(\\w+)\\([^)]*\\)/g,          // await someCall()\n        /fetch\\s*\\([^)]*\\)/g,               // fetch()\n        /axios\\.\\w+\\([^)]*\\)/g,             // axios.get/post()\n        /client\\.\\w+\\([^)]*\\)/g,            // client.method()\n        /api\\.\\w+\\([^)]*\\)/g,               // api.method()\n        /new\\s+(\\w+)\\([^)]*\\)/g             // new SomeClient()\n    ];\n\n    for (const pattern of apiCallPatterns) {\n        const matches = bundle.code.match(pattern);\n        if (matches) {\n            patterns.apiCalls.push(...matches.slice(0, 10)); // Limit to 10 per pattern\n        }\n    }\n\n    // Extract API-related keywords\n    const keywordPatterns = [\n        /\\b(api|client|service|provider|sdk)\\b/gi,\n        /\\b(http|https|request|response)\\b/gi,\n        /\\b(auth|token|key|secret)\\b/gi,\n        /\\b(database|db|query|collection)\\b/gi,\n        /\\b(payment|charge|subscription)\\b/gi\n    ];\n\n    for (const pattern of keywordPatterns) {\n        const matches = bundle.code.match(pattern);\n        if (matches) {\n            patterns.keywords.push(...new Set(matches.map(m => m.toLowerCase())));\n        }\n    }\n\n    return patterns;\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 176,
+        "startColumn": 7,
+        "endLine": 225,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:233:batchClassifyApis",
+      "type": "function",
+      "name": "batchClassifyApis",
+      "body": "async function batchClassifyApis(\n    bundles: ContextBundle[],\n    useQuickDetection: boolean = true\n): Promise<ApiClassification[]> {\n    if (bundles.length === 0) {\n        return [];\n    }\n\n    // Fast path: use quick detection for all bundles\n    if (useQuickDetection) {\n        console.log(`Using quick regex detection for ${bundles.length} units (no API calls)...`);\n        return bundles.map(bundle => {\n            const providers = detectProvidersQuick(bundle);\n\n            if (providers.length > 0) {\n                let category: 'llm' | 'payment' | 'database' | 'other' = 'other';\n                const provider = providers[0];\n\n                if (['openai', 'anthropic', 'gemini'].includes(provider)) {\n                    category = 'llm';\n                } else if (['stripe', 'paypal'].includes(provider)) {\n                    category = 'payment';\n                } else if (['mongodb', 'postgresql', 'mysql'].includes(provider)) {\n                    category = 'database';\n                }\n\n                return {\n                    role: 'consumer',\n                    category: category,\n                    provider: provider,\n                    confidence: 0.85\n                };\n            }\n\n            return {\n                role: 'none',\n                category: 'other',\n                provider: 'unknown',\n                confidence: 0\n            };\n        });\n    }\n\n    // Gemini path: batch classify with AI\n    if (!genAI) {\n        return bundles.map(() => ({\n            role: 'none',\n            category: 'other',\n            provider: 'unknown',\n            confidence: 0\n        }));\n    }\n\n    try {\n        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });\n\n        // Extract patterns from all bundles\n        const allPatterns = bundles.map((bundle, idx) => ({\n            index: idx,\n            patterns: extractApiPatterns(bundle)\n        }));\n\n        // Build batch prompt\n        const prompt = buildBatchClassificationPrompt(allPatterns);\n\n        console.log(`Analyzing ${bundles.length} code units in one batch...`);\n        const result = await model.generateContent(prompt);\n        const response = result.response.text();\n\n        // Parse batch response\n        const classifications = parseBatchResponse(response, bundles.length);\n        return classifications;\n\n    } catch (error) {\n        console.error('Error in batch classification:', error);\n        // Return default classifications\n        return bundles.map(() => ({\n            role: 'none',\n            category: 'other',\n            provider: 'unknown',\n            confidence: 0\n        }));\n    }\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 233,
+        "startColumn": 7,
+        "endLine": 316,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:321:buildBatchClassificationPrompt",
+      "type": "function",
+      "name": "buildBatchClassificationPrompt",
+      "body": "function buildBatchClassificationPrompt(\n    patterns: Array<{ index: number; patterns: ReturnType<typeof extractApiPatterns> }>\n): string {\n    const unitsData = patterns.map(p => `\nUnit ${p.index}:\nImports: ${p.patterns.imports.slice(0, 5).join(', ')}\nAPI Calls: ${p.patterns.apiCalls.slice(0, 5).join(', ')}\nKeywords: ${p.patterns.keywords.slice(0, 10).join(', ')}\n`).join('\\n');\n\n    return `Analyze these code units and identify if they use paid APIs or services.\n\n${unitsData}\n\nFor each unit, determine:\n1. Is it a \"consumer\" (calls external APIs), \"provider\" (defines endpoints), or \"none\"\n2. Category: \"llm\", \"payment\", \"database\", \"cloud\", \"analytics\", \"email\", \"storage\", \"other\"\n3. Specific provider name (e.g., \"openai\", \"stripe\", \"aws\", \"mongodb\")\n4. Is it a PAID service? (true/false)\n5. Confidence (0-1)\n\nReturn ONLY a JSON array (no markdown):\n[\n  {\n    \"unit\": 0,\n    \"role\": \"consumer\",\n    \"category\": \"llm\",\n    \"provider\": \"openai\",\n    \"isPaid\": true,\n    \"confidence\": 0.95\n  },\n  ...\n]`;\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 321,
+        "startColumn": 0,
+        "endLine": 354,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:359:parseBatchResponse",
+      "type": "function",
+      "name": "parseBatchResponse",
+      "body": "function parseBatchResponse(\n    response: string,\n    expectedCount: number\n): ApiClassification[] {\n    try {\n        // Remove markdown if present\n        let cleaned = response.trim();\n        if (cleaned.startsWith('```json')) {\n            cleaned = cleaned.replace(/```json\\n?/g, '').replace(/```\\n?/g, '');\n        } else if (cleaned.startsWith('```')) {\n            cleaned = cleaned.replace(/```\\n?/g, '');\n        }\n\n        const parsed = JSON.parse(cleaned);\n\n        if (!Array.isArray(parsed)) {\n            throw new Error('Response is not an array');\n        }\n\n        // Convert to ApiClassification format\n        const results: ApiClassification[] = [];\n        for (let i = 0; i < expectedCount; i++) {\n            const item = parsed.find((p: any) => p.unit === i);\n\n            if (item) {\n                results.push({\n                    role: item.role || 'none',\n                    category: item.category || 'other',\n                    provider: item.provider || 'unknown',\n                    confidence: item.confidence || 0\n                });\n            } else {\n                results.push({\n                    role: 'none',\n                    category: 'other',\n                    provider: 'unknown',\n                    confidence: 0\n                });\n            }\n        }\n\n        return results;\n\n    } catch (error) {\n        console.error('Error parsing batch response:', error);\n        // Return defaults\n        return Array(expectedCount).fill({\n            role: 'none',\n            category: 'other',\n            provider: 'unknown',\n            confidence: 0\n        });\n    }\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 359,
+        "startColumn": 0,
+        "endLine": 412,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:418:detectProvidersQuick",
+      "type": "function",
+      "name": "detectProvidersQuick",
+      "body": "function detectProvidersQuick(bundle: ContextBundle): string[] {\n    const providers: string[] = [];\n    const imports = bundle.imports.toLowerCase();\n\n    // Only check most common/obvious ones\n    const quickChecks: Record<string, string> = {\n        'openai': 'openai',\n        'anthropic': 'anthropic',\n        '@google/generative': 'gemini',\n        'stripe': 'stripe',\n        'aws-sdk': 'aws',\n        '@aws-sdk': 'aws',\n        'mongodb': 'mongodb',\n        'axios': 'axios',\n        'firebase': 'firebase'\n    };\n\n    for (const [pattern, provider] of Object.entries(quickChecks)) {\n        if (imports.includes(pattern)) {\n            providers.push(provider);\n        }\n    }\n\n    return [...new Set(providers)];\n}",
+      "dependencies": [
+        "import { GoogleGenerativeAI } from '@google/generative-ai';",
+        "import { ContextBundle, ApiClassification } from './types';",
+        "import * as dotenv from 'dotenv';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts",
+        "startLine": 418,
+        "startColumn": 7,
+        "endLine": 442,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:24:initializeParser",
+      "type": "function",
+      "name": "initializeParser",
+      "body": "async function initializeParser(workspaceRoot: string, apiKey?: string): Promise<void> {\n  await initializeStore(workspaceRoot);\n  initializeGemini(apiKey);\n  console.log('Parser system initialized');\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 24,
+        "startColumn": 7,
+        "endLine": 28,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:35:indexWorkspace",
+      "type": "function",
+      "name": "indexWorkspace",
+      "body": "async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> {\n  console.log('Starting workspace indexing...');\n\n  try {\n    // Load previous state\n    const previousGraph = await loadIndex(rootPath);\n    const previousHashes = await loadFileHashes(rootPath);\n\n    // Scan workspace\n    const files = await scanWorkspace(rootPath);\n    const currentHashes = createHashMap(files);\n\n    // Determine which files need processing\n    const modifiedFilePaths = getModifiedFiles(currentHashes, previousHashes);\n    console.log(`Found ${modifiedFilePaths.length} modified files out of ${files.length} total`);\n\n    // Parse modified files\n    const allUnits: CodeUnit[] = previousGraph?.units || [];\n    const allClassifications: Record<string, ApiClassification> = previousGraph?.classifications || {};\n\n    // Collect all new units first\n    const newUnitsToClassify: { unit: CodeUnit; bundle: ContextBundle }[] = [];\n\n    for (const filePath of modifiedFilePaths) {\n      console.log(`Parsing ${filePath}...`);\n\n      // Remove old units from this file\n      const fileUnits = allUnits.filter(u => u.location.fileUri !== filePath);\n\n      // Parse and add new units\n      const newUnits = await parseFile(filePath);\n      allUnits.push(...newUnits);\n\n      // Prepare units for batch classification\n      for (const unit of newUnits) {\n        const bundle = bundleContext(unit);\n        newUnitsToClassify.push({ unit, bundle });\n      }\n    }\n\n    // Batch classify all new units (1-2 API calls instead of 50+)\n    if (newUnitsToClassify.length > 0) {\n      console.log(`\\nBatch classifying ${newUnitsToClassify.length} code units...`);\n\n      const bundles = newUnitsToClassify.map(item => item.bundle);\n      const { batchClassifyApis } = await import('./intelligence.js');\n      // Use quick detection by default (no Gemini API calls)\n      // To enable Gemini: pass false as second parameter\n      const classifications = await batchClassifyApis(bundles, true);\n\n      // Map classifications back to units\n      for (let i = 0; i < newUnitsToClassify.length; i++) {\n        allClassifications[newUnitsToClassify[i].unit.id] = classifications[i];\n      }\n\n      console.log('Batch classification complete!\\n');\n    }\n\n    // Build file nodes\n    const fileNodes: FileNode[] = files.map(file => ({\n      path: file.path,\n      hash: file.hash,\n      lastModified: file.lastModified,\n      units: allUnits.filter(u => u.location.fileUri === file.path).map(u => u.id)\n    }));\n\n    // Create graph\n    const graph: CodespaceGraph = {\n      version: '1.0.0',\n      timestamp: Date.now(),\n      files: fileNodes,\n      units: allUnits,\n      classifications: allClassifications\n    };\n\n    // Save state\n    await saveIndex(rootPath, graph);\n    await saveFileHashes(rootPath, currentHashes);\n\n    // Cache for quick access\n    cachedGraph = graph;\n\n    console.log(`Indexing complete: ${files.length} files, ${allUnits.length} units`);\n    return graph;\n  } catch (error) {\n    console.error('Error indexing workspace:', error);\n    throw error;\n  }\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 35,
+        "startColumn": 7,
+        "endLine": 123,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:130:parse_llm_calls",
+      "type": "function",
+      "name": "parse_llm_calls",
+      "body": "function parse_llm_calls(document: vscode.TextDocument): llm_call[] {\n  const calls: llm_call[] = [];\n\n  if (!cachedGraph) {\n    console.warn('Workspace not indexed yet, returning empty results');\n    return calls;\n  }\n\n  // Find units in this document\n  const documentUri = document.uri.fsPath;\n  const documentUnits = cachedGraph.units.filter(\n    u => u.location.fileUri === documentUri\n  );\n\n  // Convert classified units to llm_call format\n  for (const unit of documentUnits) {\n    const classification = cachedGraph.classifications[unit.id];\n\n    if (classification && classification.role === 'consumer' && classification.category === 'llm') {\n      // Extract model and estimate cost\n      const model = extractModelFromCode(unit.body, classification.provider);\n      const promptText = extractPromptFromCode(unit.body);\n      const tokens = estimate_tokens(promptText);\n      const cost = calculate_cost(model, tokens);\n\n      calls.push({\n        line: unit.location.startLine - 1, // VSCode uses 0-indexed lines\n        provider: classification.provider === 'openai' ? 'openai' : 'anthropic',\n        model: model,\n        prompt_text: promptText,\n        estimated_tokens: tokens,\n        estimated_cost: cost\n      });\n    }\n  }\n\n  return calls;\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 130,
+        "startColumn": 7,
+        "endLine": 167,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:175:extractModelFromCode",
+      "type": "function",
+      "name": "extractModelFromCode",
+      "body": "function extractModelFromCode(code: string, provider: string): string {\n  // Look for model parameter\n  const modelMatch = code.match(/model\\s*[:=]\\s*[\"']([^\"']+)[\"']/);\n  if (modelMatch) {\n    return modelMatch[1];\n  }\n\n  // Default models by provider\n  if (provider === 'openai') return 'gpt-4';\n  if (provider === 'anthropic') return 'claude-sonnet-4';\n  return 'unknown';\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 175,
+        "startColumn": 0,
+        "endLine": 186,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:193:extractPromptFromCode",
+      "type": "function",
+      "name": "extractPromptFromCode",
+      "body": "function extractPromptFromCode(code: string): string {\n  // Look for content or messages\n  const contentMatch = code.match(/content\\s*[:=]\\s*[\"']([^\"']+)[\"']/);\n  if (contentMatch) {\n    return contentMatch[1];\n  }\n\n  const messagesMatch = code.match(/messages\\s*[:=]\\s*\\[(.*?)\\]/s);\n  if (messagesMatch) {\n    return messagesMatch[1].substring(0, 200); // Truncate for estimation\n  }\n\n  return code.substring(0, 200); // Fallback: use first 200 chars\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 193,
+        "startColumn": 0,
+        "endLine": 206,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:212:getCachedGraph",
+      "type": "function",
+      "name": "getCachedGraph",
+      "body": "function getCachedGraph(): CodespaceGraph | null {\n  return cachedGraph;\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 212,
+        "startColumn": 7,
+        "endLine": 214,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:219:clearCache",
+      "type": "function",
+      "name": "clearCache",
+      "body": "function clearCache(): void {\n  cachedGraph = null;\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 219,
+        "startColumn": 7,
+        "endLine": 221,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:242:analyzeWorkspace",
+      "type": "function",
+      "name": "analyzeWorkspace",
+      "body": "async function analyzeWorkspace(\n  workspaceRoot: string,\n  options: {\n    useGemini?: boolean;          // Use Gemini classification (default: true for quick detection)\n    scope?: string;               // Limit to specific directory\n    forceClean?: boolean;         // Remove existing index\n    geminiApiKey?: string;        // Gemini API key (optional, reads from env)\n    onProgress?: (message: string) => void;  // Progress callback\n  } = {}\n): Promise<{\n  success: boolean;\n  graph: CodespaceGraph;\n  stats: {\n    filesIndexed: number;\n    codeUnits: number;\n    classifications: number;\n    totalApis: number;\n    byCategory: Record<string, number>;\n    byProvider: Record<string, number>;\n  };\n  sampleDetections: Array<{\n    name: string;\n    file: string;\n    line: number;\n    provider: string;\n    category: string;\n    confidence: number;\n  }>;\n  duration: number;\n  error?: string;\n}> {\n  const startTime = Date.now();\n  const progress = options.onProgress || (() => { });\n\n  try {\n    // Clean index if requested\n    if (options.forceClean) {\n      progress('Cleaning existing index...');\n      const analyticsDir = path.join(workspaceRoot, '.delta-analytics-config');\n      if (fs.existsSync(analyticsDir)) {\n        fs.rmSync(analyticsDir, { recursive: true, force: true });\n        progress('Removed .delta-analytics-config/');\n      }\n    }\n\n    // Initialize parser\n    progress('Initializing parser...');\n    await initializeParser(workspaceRoot, options.geminiApiKey);\n    progress('Parser initialized');\n\n    // Index workspace\n    progress('Starting workspace indexing...');\n    const graph = await indexWorkspace(workspaceRoot);\n    progress('Indexing complete');\n\n    // Calculate statistics\n    const stats = {\n      filesIndexed: graph.files.length,\n      codeUnits: graph.units.length,\n      classifications: Object.keys(graph.classifications).length,\n      totalApis: 0,\n      byCategory: {} as Record<string, number>,\n      byProvider: {} as Record<string, number>\n    };\n\n    // Analyze classifications\n    for (const [unitId, classification] of Object.entries(graph.classifications)) {\n      if (classification.role === 'consumer' && classification.category !== 'other') {\n        stats.totalApis++;\n\n        // Count by category\n        if (!stats.byCategory[classification.category]) {\n          stats.byCategory[classification.category] = 0;\n        }\n        stats.byCategory[classification.category]++;\n\n        // Count by provider\n        if (!stats.byProvider[classification.provider]) {\n          stats.byProvider[classification.provider] = 0;\n        }\n        stats.byProvider[classification.provider]++;\n      }\n    }\n\n    // Get sample detections\n    const sampleDetections = graph.units\n      .filter(u => {\n        const c = graph.classifications[u.id];\n        return c && c.role === 'consumer' && c.category !== 'other';\n      })\n      .slice(0, 10)\n      .map(u => {\n        const c = graph.classifications[u.id];\n        return {\n          name: u.name,\n          file: path.basename(u.location.fileUri),\n          line: u.location.startLine,\n          provider: c.provider,\n          category: c.category,\n          confidence: c.confidence\n        };\n      });\n\n    const duration = (Date.now() - startTime) / 1000;\n    progress(`Analysis complete in ${duration.toFixed(2)}s`);\n\n    return {\n      success: true,\n      graph,\n      stats,\n      sampleDetections,\n      duration\n    };\n\n  } catch (error) {\n    const duration = (Date.now() - startTime) / 1000;\n    return {\n      success: false,\n      graph: { version: '1.0.0', timestamp: Date.now(), files: [], units: [], classifications: {} },\n      stats: {\n        filesIndexed: 0,\n        codeUnits: 0,\n        classifications: 0,\n        totalApis: 0,\n        byCategory: {},\n        byProvider: {}\n      },\n      sampleDetections: [],\n      duration,\n      error: error instanceof Error ? error.message : String(error)\n    };\n  }\n}",
+      "dependencies": [
+        "import * as vscode from 'vscode';",
+        "import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';",
+        "import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';",
+        "import { parseFile, bundleContext } from './ast_parser';",
+        "import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';",
+        "import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';",
+        "import { estimate_tokens, calculate_cost } from './cost_calculator';",
+        "import * as fs from 'fs';",
+        "import * as path from 'path';"
+      ],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts",
+        "startLine": 242,
+        "startColumn": 7,
+        "endLine": 374,
+        "endColumn": 1
+      }
+    },
+    {
+      "id": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js:8:test",
+      "type": "function",
+      "name": "test",
+      "body": "async function test() {\n    console.log('=== Testing analyzeWorkspace() - Quick Detection ===\\n');\n\n    const workspaceRoot = __dirname;\n\n    console.log('Running with DEFAULT settings (should NOT call Gemini)...\\n');\n\n    const results = await analyzeWorkspace(workspaceRoot, {\n        onProgress: (msg) => console.log(`  ${msg}`)\n    });\n\n    console.log('\\n=== Results ===\\n');\n\n    if (results.success) {\n        console.log(`✅ Success!`);\n        console.log(`⏱️  Duration: ${results.duration.toFixed(2)}s`);\n        console.log(`📄 Files: ${results.stats.filesIndexed}`);\n        console.log(`🔍 Units: ${results.stats.codeUnits}`);\n        console.log(`💰 Paid APIs: ${results.stats.totalApis}\\n`);\n\n        if (results.stats.totalApis > 0) {\n            console.log('By Category:');\n            for (const [cat, count] of Object.entries(results.stats.byCategory)) {\n                console.log(`  📦 ${cat}: ${count}`);\n            }\n            console.log('');\n\n            console.log('By Provider:');\n            for (const [prov, count] of Object.entries(results.stats.byProvider)) {\n                console.log(`  🏢 ${prov}: ${count}`);\n            }\n            console.log('');\n        }\n\n        console.log('✅ Test complete!\\n');\n\n        if (results.duration < 5) {\n            console.log('💡 Fast execution confirms NO Gemini API calls were made!');\n        } else {\n            console.log('⚠️  Slow execution - Gemini may have been called');\n        }\n    } else {\n        console.error(`❌ Failed: ${results.error}`);\n    }\n}",
+      "dependencies": [],
+      "location": {
+        "fileUri": "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js",
+        "startLine": 8,
+        "startColumn": 0,
+        "endLine": 52,
+        "endColumn": 1
+      }
     }
   ],
   "classifications": {
@@ -1342,32 +1711,32 @@
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:20:initializeGemini": {
       "role": "consumer",
       "category": "llm",
-      "provider": "Google (Gemini)",
-      "confidence": 1
+      "provider": "gemini",
+      "confidence": 0.85
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:38:classifyApiUsage": {
       "role": "consumer",
       "category": "llm",
-      "provider": "Google (Gemini)",
-      "confidence": 1
+      "provider": "gemini",
+      "confidence": 0.85
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:104:buildClassificationPrompt": {
-      "role": "none",
-      "category": "other",
-      "provider": "none",
-      "confidence": 1
+      "role": "consumer",
+      "category": "llm",
+      "provider": "gemini",
+      "confidence": 0.85
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:137:parseClassificationResponse": {
-      "role": "none",
+      "role": "consumer",
       "category": "llm",
-      "provider": "none",
-      "confidence": 0.9
+      "provider": "gemini",
+      "confidence": 0.85
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:176:extractApiPatterns": {
-      "role": "none",
-      "category": "other",
-      "provider": "none",
-      "confidence": 1
+      "role": "consumer",
+      "category": "llm",
+      "provider": "gemini",
+      "confidence": 0.85
     },
     "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:232:batchClassifyApis": {
       "role": "consumer",
@@ -1560,6 +1929,84 @@
       "category": "llm",
       "provider": "OpenAI",
       "confidence": 0.8
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:233:batchClassifyApis": {
+      "role": "consumer",
+      "category": "llm",
+      "provider": "gemini",
+      "confidence": 0.85
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:321:buildBatchClassificationPrompt": {
+      "role": "consumer",
+      "category": "llm",
+      "provider": "gemini",
+      "confidence": 0.85
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:359:parseBatchResponse": {
+      "role": "consumer",
+      "category": "llm",
+      "provider": "gemini",
+      "confidence": 0.85
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/intelligence.ts:418:detectProvidersQuick": {
+      "role": "consumer",
+      "category": "llm",
+      "provider": "gemini",
+      "confidence": 0.85
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:24:initializeParser": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:35:indexWorkspace": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:130:parse_llm_calls": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:175:extractModelFromCode": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:193:extractPromptFromCode": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:212:getCachedGraph": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:219:clearCache": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/src/parser.ts:242:analyzeWorkspace": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
+    },
+    "/Users/jamieseoh/Documents/Projects/delta/vscode-extension/test-analyze.js:8:test": {
+      "role": "none",
+      "category": "other",
+      "provider": "unknown",
+      "confidence": 0
     }
   }
 }
