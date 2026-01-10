@@ -17,6 +17,8 @@ build/
 # --- vscode extension specific ---
 vscode-extension/out/
 vscode-extension/*.vsix
+vscode-extension/.vscode/
+vscode-extension/.delta-analytics-config/
 
 # --- environment variables ---
 .env
@@ -42,6 +44,8 @@ Thumbs.db
 
 # --- ide / editor ---
 .vscode/
+!vscode-extension/.vscode/launch.json
+!vscode-extension/.vscode/tasks.json
 .agent/
 .idea/
 *.swp
@@ -86,3 +90,11 @@ temp/
 .parcel-cache/
 .eslintcache
 .stylelintcache
+
+# --- parser cache ---
+.delta-analytics-config/
+
+# --- test files ---
+test-analyze.js
+*.test.js
+!src/test/*.test.ts
