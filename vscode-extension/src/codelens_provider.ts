@@ -15,31 +15,37 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
    * provide codelens for a document
    */
   public provideCodeLenses(
-    document: vscode.TextDocument,
-    token: vscode.CancellationToken
-  ): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
-    // TODO: implement codelens generation
-    // 1. call parse_llm_calls(document) to get detected calls
-    // 2. for each call, create a CodeLens at that line
-    // 3. show cost estimate in the codelens title
-    // 4. add command to show detailed breakdown on click
-    
-    const detected_calls = parse_llm_calls(document);
-    const codelenses: vscode.CodeLens[] = [];
-    
-    // mock implementation - replace with real logic
-    for (const call of detected_calls) {
-      const range = new vscode.Range(call.line, 0, call.line, 0);
-      const command: vscode.Command = {
-        title: `💰 ~$${call.estimated_cost.toFixed(4)} per call`,
-        command: 'cost-tracker.showCostDetails',
-        arguments: [call]
-      };
-      codelenses.push(new vscode.CodeLens(range, command));
-    }
-    
-    return codelenses;
+  document: vscode.TextDocument,
+  token: vscode.CancellationToken
+): vscode.CodeLens[] {
+  if (token.isCancellationRequested) return [];
+
+  // Person 1 likely expects TextDocument; if they switch to string later,
+  // this is the only line you’ll change.
+  const detected_calls = parse_llm_calls(document);
+
+  const codelenses: vscode.CodeLens[] = [];
+
+  for (const call of detected_calls) {
+    // llm_call.line is 1-based in your shared type (line: number)
+    const lineIdx = Math.max(0, Math.min(document.lineCount - 1, call.line - 1));
+
+    const lineRange = document.lineAt(lineIdx).range;
+
+    const title = `💰 ~$${call.estimated_cost.toFixed(4)} • ${call.estimated_tokens} tok • ${call.provider}:${call.model}`;
+
+    const command: vscode.Command = {
+      title,
+      command: "cost-tracker.showCostDetails",
+      arguments: [call]
+    };
+
+    codelenses.push(new vscode.CodeLens(lineRange, command));
   }
+
+  return codelenses;
+}
+
 
   /**
    * refresh codelens display

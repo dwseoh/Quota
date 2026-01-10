@@ -4,16 +4,20 @@
   "description": "Track and optimize costs in your codebase",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.108.1"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:python",
-    "onLanguage:typescript",
-    "onLanguage:javascript"
-  ],
+  "onLanguage:python",
+  "onLanguage:typescript",
+  "onLanguage:javascript",
+  "onCommand:cost-tracker.showCostDetails",
+  "onCommand:cost-tracker.updateUserCount",
+  "onCommand:cost-tracker.refresh"
+]
+,
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -23,11 +27,21 @@
       },
       {
         "command": "cost-tracker.updateUserCount",
-        "title": "Update User Count for Simulation"
+        "title": "Update User Count for Simulation",
+        "icon": "$(edit)"
       },
       {
         "command": "cost-tracker.refresh",
-        "title": "Refresh Cost Analysis"
+        "title": "Refresh Cost Analysis",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cost-tracker.toggleMockData",
+        "title": "Toggle Mock Data (Testing)"
+      },
+      {
+        "command": "cost-tracker.showCallDetails",
+        "title": "Show Call Details"
       }
     ],
     "views": {
@@ -35,6 +49,27 @@
         {
           "id": "cost-tracker-panel",
           "name": "Cost Tracker"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "cost-tracker.refresh",
+          "when": "view == cost-tracker-panel",
+          "group": "navigation"
+        },
+        {
+          "command": "cost-tracker.updateUserCount",
+          "when": "view == cost-tracker-panel",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "cost-tracker.showCallDetails",
+          "when": "view == cost-tracker-panel && viewItem == call_item",
+          "group": "inline"
         }
       ]
     }
@@ -48,13 +83,18 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.108.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "typescript-eslint": "^8.52.0",
+    "@types/vscode": "^1.108.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "typescript-eslint": "^8.52.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@typescript-eslint/parser": "^8.52.0",
+    "dotenv": "^17.2.3"
   }
 }

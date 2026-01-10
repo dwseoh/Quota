@@ -5,6 +5,7 @@
 
 export interface llm_call {
   line: number;
+  file_path?: string; // optional for backwards compatibility
   provider: "openai" | "anthropic";
   model: string;
   prompt_text: string;
@@ -26,3 +27,56 @@ export interface pricing_info {
 }
 
 export type pricing_table = Record<string, pricing_info>;
+
+// --- Advanced Parser Types ---
+
+export interface LocationMetadata {
+  fileUri: string;
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+}
+
+export interface CodeUnit {
+  id: string;              // unique identifier (file:line:name)
+  type: 'function' | 'class' | 'method';
+  name: string;
+  body: string;            // source code
+  dependencies: string[];  // import statements
+  location: LocationMetadata;
+}
+
+export interface ContextBundle {
+  code: string;            // function body
+  imports: string;         // relevant dependencies
+  location: LocationMetadata;
+}
+
+export interface ApiClassification {
+  role: 'consumer' | 'provider' | 'none';
+  category: 'llm' | 'payment' | 'weather' | 'database' | 'other';
+  provider: string;        // e.g., "openai", "stripe", "aws"
+  confidence: number;      // 0-1
+}
+
+export interface FileEntry {
+  path: string;
+  hash: string;
+  lastModified: number;
+}
+
+export interface FileNode {
+  path: string;
+  hash: string;
+  lastModified: number;
+  units: string[];         // IDs of CodeUnits in this file
+}
+
+export interface CodespaceGraph {
+  version: string;         // schema version
+  timestamp: number;       // last update time
+  files: FileNode[];
+  units: CodeUnit[];
+  classifications: Record<string, ApiClassification>;
+}

@@ -17,7 +17,9 @@ export const pricing: pricing_table = {
 
   // Anthropic
   'claude-sonnet-4': { input: 0.003, output: 0.015 },
+  'claude-sonnet-4-20250514': { input: 0.003, output: 0.015 }, // Versioned alias
   'claude-haiku': { input: 0.00025, output: 0.00125 },
+  'claude-haiku-20240307': { input: 0.00025, output: 0.00125 }, // Versioned alias
 
   // Gemini / Google (approximate — verify with provider)
   'gemini-1.0': { input: 0.002, output: 0.01 },
@@ -43,9 +45,27 @@ export function estimate_tokens(text: string): number {
  * @returns cost in dollars
  */
 export function calculate_cost(model: string, tokens: number): number {
-  const model_pricing = pricing[model];
+  // Normalize model name to handle versioned models (e.g., claude-sonnet-4-20250514 → claude-sonnet-4)
+  let normalizedModel = model;
+  
+  // Check if exact match exists first
+  if (!pricing[model]) {
+    // Try to normalize common patterns
+    if (model.includes('claude-sonnet')) {
+      normalizedModel = 'claude-sonnet-4';
+    } else if (model.includes('claude-haiku')) {
+      normalizedModel = 'claude-haiku';
+    } else if (model.includes('gpt-4')) {
+      normalizedModel = 'gpt-4';
+    } else if (model.includes('gpt-3.5')) {
+      normalizedModel = 'gpt-3.5-turbo';
+    }
+  }
+  
+  const model_pricing = pricing[normalizedModel];
   if (!model_pricing) {
-    return 0;
+    console.warn(`Unknown model: ${model}, using default rate`);
+    return (tokens / 1000) * 0.01; // Default rate if model not found
   }
   
   // for mvp, assume input tokens only (conservative estimate)
