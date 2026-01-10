@@ -3,6 +3,7 @@
   "displayName": "Cost Tracker",
   "description": "Track and optimize costs in your codebase",
   "version": "0.0.1",
+
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -72,6 +73,16 @@
           "group": "inline"
         }
       ]
+    },
+    "configuration": {
+      "title": "Cost Tracker",
+      "properties": {
+        "cost-tracker.monthlyBudget": {
+          "type": "number",
+          "default": 500,
+          "description": "Monthly budget limit in USD for cost alerts"
+        }
+      }
     }
   },
   "scripts": {

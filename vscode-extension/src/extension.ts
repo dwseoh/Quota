@@ -68,6 +68,11 @@ export function activate(context: vscode.ExtensionContext) {
       console.log('  3. Is quick detection working? (check intelligence.ts)');
     }
     tree_provider.update_calls(allCalls);
+    
+    // Update status bar with new totals
+    const totalCost = allCalls.reduce((sum, call) => sum + call.estimated_cost, 0);
+    const userCount = tree_provider.get_user_count();
+    updateStatusBar(totalCost, userCount);
   };
 
   // Helper functions (simplified versions from parser)
@@ -91,6 +96,10 @@ export function activate(context: vscode.ExtensionContext) {
     return Math.ceil(text.length / 4);
   };
 
+  // status bar
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  context.subscriptions.push(statusBarItem);
+
   const calculateCost = (model: string, tokens: number): number => {
     // Normalize model name (remove date suffixes)
     let normalizedModel = model;
@@ -108,6 +117,41 @@ export function activate(context: vscode.ExtensionContext) {
     const rate = pricing[normalizedModel] || 0.01;
     return (tokens / 1000) * rate;
   };
+
+  const updateStatusBar = (totalCost: number, userCount: number) => {
+    const config = vscode.workspace.getConfiguration('cost-tracker');
+    const budget = config.get<number>('monthlyBudget') || 500;
+    
+    // Calculate projected monthly cost based on current simulation settings
+    const dailyCost = totalCost * userCount;
+    const monthlyCost = dailyCost * 30;
+    
+    statusBarItem.text = `$(graph) $${monthlyCost.toFixed(2)} / $${budget}`;
+    statusBarItem.tooltip = `Projected Monthly Cost: $${monthlyCost.toFixed(2)}\nBudget: $${budget}`;
+    
+    // Color logic
+    if (monthlyCost >= budget) {
+      statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    } else if (monthlyCost >= budget * 0.8) {
+      statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+      
+      // Show warning if not recently shown (basic debounce could be added here, 
+      // but for now we rely on the fact that this is called on updates)
+      // To avoid spam, we could check a timestamp, but let's keep it simple for MVP.
+    } else {
+      statusBarItem.backgroundColor = undefined; // Default color
+    }
+    
+    statusBarItem.show();
+    
+    // Trigger notification if over 80%
+    if (monthlyCost >= budget * 0.8) {
+      // Prevent spamming: using VS Code's built-in suppression for identical messages isn't always enough if params change slightly
+      // For MVP, we'll just show it. VS Code handles duplicate messages well.
+      vscode.window.showWarningMessage(`Budget Alert: You've reached 80% of your $${budget} monthly budget!`);
+    }
+  };
+
 
   // --- person 2's registration: codelens provider ---
   const codelens_provider = new cost_codelens_provider();
@@ -197,7 +241,12 @@ export function activate(context: vscode.ExtensionContext) {
 
       if (input) {
         tree_provider.update_user_count(Number(input));
-        tree_provider.refresh();
+        
+        // Update status bar immediately
+        const graph = getCachedGraph(); // We need to re-calculate total cost or just grab it.
+        // Easier to just trigger a refresh of the whole tree/status or grab calls from tree_provider?
+        // Let's just re-run the full update logic for consistency
+        updateTreeviewWithAllCalls(); 
       }
     }
   );
