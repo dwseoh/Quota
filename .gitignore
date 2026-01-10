@@ -47,6 +47,7 @@ Thumbs.db
 !vscode-extension/.vscode/launch.json
 !vscode-extension/.vscode/tasks.json
 .agent/
+.cursor/
 .idea/
 *.swp
 *.swo
