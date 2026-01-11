@@ -29,7 +29,7 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
     for (const call of detected_calls) {
       const lineIdx = Math.max(0, Math.min(document.lineCount - 1, call.line - 1));
       const lineRange = document.lineAt(lineIdx).range;
-      const title = `💰 ~$${call.estimated_cost.toFixed(4)} • ${call.estimated_tokens} tok • ${call.provider}:${call.model}`;
+      const title = `💰 ~$${call.estimated_cost.toFixed(4)} • ${call.estimated_tokens} tok • ${call.provider}:${call.model}`.toLowerCase();
 
       const command: vscode.Command = {
         title,
@@ -53,7 +53,7 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
             const icon = suggestion.severity === 'warning' ? '⚠️' : '💡';
             
             const command: vscode.Command = {
-                title: `${icon} Suggestion: ${suggestion.title}`,
+                title: `${icon} suggestion: ${suggestion.title.toLowerCase()}`,
                 command: 'cost-tracker.showSuggestionDetails',
                 arguments: [suggestion]
             };

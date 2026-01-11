@@ -163,7 +163,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     
     // summary section
     items.push(new cost_tree_item(
-      `💰 Total: $${total_cost.toFixed(4)}`,
+      `💰 total (per run): $${total_cost.toFixed(4)}`,
       vscode.TreeItemCollapsibleState.None,
       'summary'
     ));
@@ -207,7 +207,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
     
     return calls.map(call => {
-      const label = `${call.provider} • ${call.model}: $${call.estimated_cost.toFixed(4)}`;
+      const label = `${call.provider} • ${call.model}: $${call.estimated_cost.toFixed(4)}`.toLowerCase();
       return new cost_tree_item(
         label,
         vscode.TreeItemCollapsibleState.None,
@@ -219,12 +219,12 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
 
   private get_optimization_items(): cost_tree_item[] {
     if (this.suggestions.length === 0) {
-        return [new cost_tree_item('No optimizations found', vscode.TreeItemCollapsibleState.None, 'optimization_item')];
+        return [new cost_tree_item('no optimizations found', vscode.TreeItemCollapsibleState.None, 'optimization_item')];
     }
 
     return this.suggestions.map(suggestion => {
         return new cost_tree_item(
-            suggestion.title,
+            suggestion.title.toLowerCase(),
             vscode.TreeItemCollapsibleState.None,
             'optimization_item',
             undefined,
@@ -244,7 +244,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     
     // current settings
     items.push(new cost_tree_item(
-      `Users/day: ${this.user_count}`,
+      `users/day: ${this.user_count}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
@@ -252,16 +252,29 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     // projections
     const daily_cost = total_cost * this.user_count;
     const monthly_cost = daily_cost * 30;
+    const yearly_cost = daily_cost * 365;
     
     items.push(new cost_tree_item(
-      `Monthly Projected: $${monthly_cost.toFixed(2)}`,
+      `daily projected: $${daily_cost.toFixed(2)}`,
+      vscode.TreeItemCollapsibleState.None,
+      'simulator_item'
+    ));
+
+    items.push(new cost_tree_item(
+      `monthly projected: $${monthly_cost.toFixed(2)}`,
+      vscode.TreeItemCollapsibleState.None,
+      'simulator_item'
+    ));
+
+    items.push(new cost_tree_item(
+      `yearly projected: $${yearly_cost.toFixed(2)}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
     
     // action button to update user count
     items.push(new cost_tree_item(
-      'Update User Count',
+      'update user count',
       vscode.TreeItemCollapsibleState.None,
       'action_button'
     ));
@@ -284,14 +297,14 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       const items: cost_tree_item[] = [];
 
       items.push(new cost_tree_item(
-          `Files Indexed: ${this.project_graph.files.length}`,
+          `files indexed: ${this.project_graph.files.length}`,
           vscode.TreeItemCollapsibleState.None,
           'summary'
       ));
 
       if (this.top_expensive_files.length === 0) {
          items.push(new cost_tree_item(
-             'No cost data yet',
+             'no cost data yet',
              vscode.TreeItemCollapsibleState.None,
              'summary'
          ));
