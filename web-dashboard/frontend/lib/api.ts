@@ -101,3 +101,113 @@ export async function clearSession(sessionId: string): Promise<void> {
         throw error;
     }
 }
+
+// ===== Sandbox API =====
+
+export interface SandboxCreate {
+    projectName: string;
+    description?: string;
+    architectureJson: any;
+}
+
+export interface SandboxResponse {
+    sandboxId: string;
+    projectName: string;
+    description?: string;
+    architectureJson: any;
+    techStack: string[];
+    totalCost: number;
+    createdAt: string;
+    updatedAt: string;
+    isPublic: boolean;
+    views: number;
+}
+
+export interface SandboxListItem {
+    sandboxId: string;
+    projectName: string;
+    description?: string;
+    techStack: string[];
+    totalCost: number;
+    createdAt: string;
+    views: number;
+}
+
+/**
+ * Publish a new sandbox
+ */
+export async function publishSandbox(data: SandboxCreate): Promise<SandboxResponse> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/sandboxes`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Publish sandbox API error:", error);
+        throw error;
+    }
+}
+
+/**
+ * Get a sandbox by ID
+ */
+export async function getSandbox(sandboxId: string): Promise<SandboxResponse> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/sandboxes/${sandboxId}`);
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error("Sandbox not found");
+            }
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Get sandbox API error:", error);
+        throw error;
+    }
+}
+
+/**
+ * List public sandboxes
+ */
+export async function listSandboxes(params?: {
+    search?: string;
+    techStack?: string;
+    minCost?: number;
+    maxCost?: number;
+    limit?: number;
+    skip?: number;
+}): Promise<SandboxListItem[]> {
+    try {
+        const queryParams = new URLSearchParams();
+        if (params?.search) queryParams.append("search", params.search);
+        if (params?.techStack) queryParams.append("tech_stack", params.techStack);
+        if (params?.minCost !== undefined) queryParams.append("min_cost", params.minCost.toString());
+        if (params?.maxCost !== undefined) queryParams.append("max_cost", params.maxCost.toString());
+        if (params?.limit) queryParams.append("limit", params.limit.toString());
+        if (params?.skip) queryParams.append("skip", params.skip.toString());
+
+        const url = `${API_BASE_URL}/sandboxes${queryParams.toString() ? `?${queryParams}` : ""}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("List sandboxes API error:", error);
+        throw error;
+    }
+}

@@ -1,165 +1,150 @@
 "use client";
 
 import React from "react";
-import { ReactFlowProvider } from "@xyflow/react";
-import ComponentLibrary from "@/components/sidebar/ComponentLibrary";
-import ArchitectureCanvas from "@/components/canvas/ArchitectureCanvas";
-import RightSidebar from "@/components/sidebar/RightSidebar";
-import ScopePanel from "@/components/scope/ScopePanel";
+import Link from "next/link";
 import Logo from "@/components/Logo";
-import { Save, Upload, Trash2 } from "lucide-react";
-import { useArchitectureStore } from "@/lib/store";
+import { ArrowRight, Layers, DollarSign, Share2, Activity, Zap, ListOrdered } from "lucide-react";
 
-export default function Home() {
-  const { saveToFile, loadFromFile, clearCanvas, projectName, setProjectName } = useArchitectureStore();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isEditingName, setIsEditingName] = React.useState(false);
-  const [tempName, setTempName] = React.useState(projectName);
-
-  const handleLoadFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        loadFromFile(content);
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const handleClearCanvas = () => {
-    if (confirm("Are you sure you want to clear the canvas? This cannot be undone.")) {
-      clearCanvas();
-    }
-  };
-
-  const handleNameClick = () => {
-    setIsEditingName(true);
-    setTempName(projectName);
-  };
-
-  const handleNameBlur = () => {
-    setIsEditingName(false);
-    if (tempName.trim()) {
-      setProjectName(tempName.trim());
-    } else {
-      setTempName(projectName);
-    }
-  };
-
-  const handleNameKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleNameBlur();
-    } else if (e.key === "Escape") {
-      setIsEditingName(false);
-      setTempName(projectName);
-    }
-  };
-
-  // Sync tempName when projectName changes (e.g., after loading a file)
-  React.useEffect(() => {
-    setTempName(projectName);
-  }, [projectName]);
-
-  // Update document title
-  React.useEffect(() => {
-    document.title = `Quota Sandbox | ${projectName}`;
-  }, [projectName]);
-
+export default function LandingPage() {
   return (
-    <div className="h-screen w-screen flex flex-col bg-[var(--background)] overflow-hidden">
-      {/* Top Navigation */}
-      <header className="h-14 border-b border-[var(--border)] bg-[var(--background-secondary)] flex items-center justify-between px-6 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] flex items-center justify-center">
-            <Logo className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            {isEditingName ? (
-              <input
-                type="text"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                onBlur={handleNameBlur}
-                onKeyDown={handleNameKeyDown}
-                autoFocus
-                className="text-lg font-bold text-[var(--foreground)] bg-[var(--background-tertiary)] border border-[var(--primary)] rounded px-2 py-0.5 outline-none w-[300px]"
-              />
-            ) : (
-              <h1
-                className="text-lg font-bold text-[var(--foreground)] cursor-pointer hover:text-[var(--primary)] transition-colors truncate max-w-[300px]"
-                onClick={handleNameClick}
-                title={projectName}
-              >
-                {projectName}
-              </h1>
-            )}
-            <p className="text-xs text-[var(--foreground-secondary)]">
-              Design, estimate, and optimize your stack
-            </p>
-          </div>
-        </div>
+    <div className="flex flex-col h-screen overflow-y-auto bg-[var(--background)]">
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={saveToFile}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-sm transition-colors"
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--background-secondary)] px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] flex items-center justify-center">
+              <Logo className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-[var(--foreground)]">Quota Home</h1>
+          </div>
+          <Link
+            href="/explore"
+            className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--primary)] transition-colors"
           >
-            <Save className="w-4 h-4" />
-            Save
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--background-tertiary)] hover:bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] text-sm transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Load
-          </button>
-          <button
-            onClick={handleClearCanvas}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--error)]/20 hover:bg-[var(--error)]/30 border border-[var(--error)]/30 text-[var(--error)] text-sm transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleLoadFile}
-            className="hidden"
-          />
+            Explore Sandboxes
+          </Link>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Component Library */}
-        <div className="w-64 flex-shrink-0">
-          <ComponentLibrary />
-        </div>
+      {/* Main scrollable content */}
+      <main className="flex-grow px-6 py-20">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
 
-        {/* Center - Canvas */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1">
-            <ReactFlowProvider>
-              <ArchitectureCanvas />
-            </ReactFlowProvider>
+          {/* Hero Section */}
+          <div className="space-y-4">
+            <h2 className="text-5xl font-bold text-[var(--foreground)] leading-tight">
+              Design, Estimate, and Optimize
+              <br />
+              <span className="bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] bg-clip-text text-transparent">
+                Your Tech Stack
+              </span>
+            </h2>
+            <p className="text-xl text-[var(--foreground-secondary)] max-w-2xl mx-auto">
+              Build cloud architectures visually, get instant cost estimates, and share your designs with the community.
+            </p>
           </div>
 
-          {/* Bottom - Scope Panel */}
-          <div className="flex-shrink-0">
-            <ScopePanel />
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/sandbox/new"
+              className="group flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] text-white font-semibold text-lg hover:shadow-[var(--shadow-glow)] transition-all duration-300"
+            >
+              Enter Sandbox
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/explore"
+              className="flex items-center gap-2 px-8 py-4 rounded-xl border-2 border-[var(--border)] text-[var(--foreground)] font-semibold text-lg hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all duration-300"
+            >
+              Browse Sandboxes
+            </Link>
           </div>
-        </div>
 
-        {/* Right Sidebar - Cost, Suggestions, Chat */}
-        <div className="w-96 flex-shrink-0">
-          <RightSidebar />
+
+          {/* Sandbox Features */}
+          <section className="space-y-4 mt-16">
+            <h3 className="text-2xl font-bold text-[var(--foreground)] text-center">Sandbox Features</h3>
+            <p className="text-[var(--foreground-secondary)] text-center max-w-2xl mx-auto mb-8">
+              Design and visualize your cloud architecture with our interactive sandbox
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="glass rounded-xl p-6 border border-[var(--glass-border)] space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center">
+                  <Layers className="w-6 h-6 text-[var(--primary)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Visual Design</h3>
+                <p className="text-sm text-[var(--foreground-secondary)]">
+                  Drag and drop components to build your architecture. No code required.
+                </p>
+              </div>
+
+              <div className="glass rounded-xl p-6 border border-[var(--glass-border)] space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-[var(--secondary)]/20 flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-[var(--secondary)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Cost Estimation</h3>
+                <p className="text-sm text-[var(--foreground-secondary)]">
+                  Get instant monthly cost breakdowns based on your scale and traffic.
+                </p>
+              </div>
+
+              <div className="glass rounded-xl p-6 border border-[var(--glass-border)] space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-[var(--accent)]/20 flex items-center justify-center">
+                  <Share2 className="w-6 h-6 text-[var(--accent)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Share & Explore</h3>
+                <p className="text-sm text-[var(--foreground-secondary)]">
+                  Publish your designs and discover architectures from the community.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* VSCode Extension Features */}
+          <section className="space-y-4 mt-20">
+            <h3 className="text-2xl font-bold text-[var(--foreground)] text-center">VSCode Extension</h3>
+            <p className="text-[var(--foreground-secondary)] text-center max-w-2xl mx-auto mb-8">
+              Analyze your codebase and get real-time insights directly in your editor
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="glass rounded-xl p-6 border border-[var(--glass-border)] space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-[var(--success)]/20 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-[var(--success)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Visualize & Simulate Cost Inline</h3>
+                <p className="text-sm text-[var(--foreground-secondary)]">
+                  See cost estimates directly in your code as you build.
+                </p>
+              </div>
+
+              <div className="glass rounded-xl p-6 border border-[var(--glass-border)] space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-[var(--warning)]/20 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-[var(--warning)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Get Optimization Suggestions</h3>
+                <p className="text-sm text-[var(--foreground-secondary)]">
+                  Receive smart recommendations to improve your architecture.
+                </p>
+              </div>
+
+              <div className="glass rounded-xl p-6 border border-[var(--glass-border)] space-y-3">
+                <div className="w-12 h-12 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center">
+                  <ListOrdered className="w-6 h-6 text-[var(--primary)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Prioritize What to Fix First</h3>
+                <p className="text-sm text-[var(--foreground-secondary)]">
+                  Get actionable insights on which issues to tackle first.
+                </p>
+              </div>
+            </div>
+          </section>
+
         </div>
-      </div>
+      </main>
+
+
     </div>
   );
 }

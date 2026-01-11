@@ -26,16 +26,33 @@ const edgeTypes: EdgeTypes = {
     custom: CustomEdge,
 };
 
-export default function ArchitectureCanvas() {
+interface ArchitectureCanvasProps {
+    readOnly?: boolean;
+}
+
+export default function ArchitectureCanvas({ readOnly = false }: ArchitectureCanvasProps) {
     const {
         nodes,
         edges,
         onNodesChange,
         onEdgesChange,
         onConnect,
-        isLocked,
+        isLocked: storeIsLocked,
         toggleLock,
     } = useArchitectureStore();
+
+    const isLocked = readOnly || storeIsLocked;
+
+    // Inject readOnly prop into node data
+    const nodesWithReadOnly = React.useMemo(() => {
+        return nodes.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                readOnly: isLocked
+            }
+        }));
+    }, [nodes, isLocked]);
 
     // Deselect all nodes when entering lock mode
     useEffect(() => {
@@ -97,7 +114,7 @@ export default function ArchitectureCanvas() {
     return (
         <div className="w-full h-full">
             <ReactFlow
-                nodes={nodes}
+                nodes={nodesWithReadOnly}
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
@@ -135,14 +152,16 @@ export default function ArchitectureCanvas() {
                     size={2}
                     color="rgba(255, 255, 255, 0.2)"
                 />
-                <Controls
-                    showInteractive={false}
-                    className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg [&>button]:!bg-[var(--background-tertiary)] [&>button]:!rounded-lg [&>button]:!border [&>button]:!border-[var(--border)] [&>button]:!w-8 [&>button]:!h-8"
-                >
-                    <ControlButton onClick={toggleLock} title={isLocked ? "Unlock Canvas" : "Lock Canvas"}>
-                        {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                    </ControlButton>
-                </Controls>
+                {!readOnly && (
+                    <Controls
+                        showInteractive={false}
+                        className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg [&>button]:!bg-[var(--background-tertiary)] [&>button]:!rounded-lg [&>button]:!border [&>button]:!border-[var(--border)] [&>button]:!w-8 [&>button]:!h-8"
+                    >
+                        <ControlButton onClick={toggleLock} title={isLocked ? "Unlock Canvas" : "Lock Canvas"}>
+                            {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                        </ControlButton>
+                    </Controls>
+                )}
                 <MiniMap
                     style={{ height: 100, width: 140 }}
                     className="!bg-[var(--glass-bg)]/20 !border-[var(--border)]/30 !backdrop-blur-[4px] !rounded-lg !shadow-sm !bottom-2 !right-2"

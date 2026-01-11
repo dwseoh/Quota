@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     gemini_api_key: str = os.getenv("GEMINI_API_KEY")
     gemini_model: str = "gemini-2.5-flash"
     
+    # MongoDB
+    mongodb_uri: Optional[str] = os.getenv("MONGODB_URI")
+    
     # CORS
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     

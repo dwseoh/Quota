@@ -13,6 +13,7 @@ export interface CustomNodeData extends Record<string, unknown> {
     icon: string;
     color: string;
     config?: Record<string, any>;
+    readOnly?: boolean;
 }
 
 // Detect if a color is very dark (black or near-black)
@@ -33,6 +34,9 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
     const { setNodes } = useReactFlow();
     const isLocked = useArchitectureStore((state) => state.isLocked);
 
+    // Node is read-only if explicitly marked in data OR if canvas is locked
+    const isReadOnly = data.readOnly || isLocked;
+
     const deleteNode = () => {
         setNodes((nodes) => nodes.filter((node) => node.id !== id));
     };
@@ -42,7 +46,7 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
             className={cn(
                 "px-4 py-3 rounded-xl border-2 transition-all duration-200 min-w-[140px] relative backdrop-blur-xl",
                 "shadow-md hover:shadow-lg",
-                selected && !isLocked
+                selected && !isReadOnly
                     ? "border-[var(--primary)] shadow-[0_0_20px_rgba(99,102,241,0.5)] scale-105"
                     : "border-[var(--glass-border)]"
             )}
@@ -52,8 +56,8 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {/* Delete button - shows on hover or select (only if not locked) */}
-            {!isLocked && (isHovered || selected) && (
+            {/* Delete button - shows on hover or select (only if not read-only) */}
+            {!isReadOnly && (isHovered || selected) && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -66,51 +70,51 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
                 </button>
             )}
 
-            {/* Handles - only visible on hover or when selected, hidden when locked */}
-            {!isLocked && (
-                <>
-                    <Handle
-                        id="top"
-                        type="source"
-                        position={Position.Top}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, top: -3 }}
-                    />
-                    <Handle
-                        id="top-target"
-                        type="target"
-                        position={Position.Top}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, top: -3 }}
-                    />
-                    <Handle
-                        id="left"
-                        type="source"
-                        position={Position.Left}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, left: -3 }}
-                    />
-                    <Handle
-                        id="left-target"
-                        type="target"
-                        position={Position.Left}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, left: -3 }}
-                    />
-                </>
-            )}
+            {/* Handles - always render for edges, but hide visually when read-only */}
+            <Handle
+                id="top"
+                type="source"
+                position={Position.Top}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, top: -3 }}
+            />
+            <Handle
+                id="top-target"
+                type="target"
+                position={Position.Top}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, top: -3 }}
+            />
+            <Handle
+                id="left"
+                type="source"
+                position={Position.Left}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, left: -3 }}
+            />
+            <Handle
+                id="left-target"
+                type="target"
+                position={Position.Left}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, left: -3 }}
+            />
 
             <div className="flex items-center gap-2">
                 <div
@@ -141,50 +145,50 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
                 </div>
             </div>
 
-            {!isLocked && (
-                <>
-                    <Handle
-                        id="bottom"
-                        type="source"
-                        position={Position.Bottom}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, bottom: -3 }}
-                    />
-                    <Handle
-                        id="bottom-target"
-                        type="target"
-                        position={Position.Bottom}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, bottom: -3 }}
-                    />
-                    <Handle
-                        id="right"
-                        type="source"
-                        position={Position.Right}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, right: -3 }}
-                    />
-                    <Handle
-                        id="right-target"
-                        type="target"
-                        position={Position.Right}
-                        className={cn(
-                            "!w-3 !h-3 !border-2 transition-opacity",
-                            isHovered || selected ? "!opacity-100" : "!opacity-0"
-                        )}
-                        style={{ borderColor: data.color, right: -3 }}
-                    />
-                </>
-            )}
+            <Handle
+                id="bottom"
+                type="source"
+                position={Position.Bottom}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, bottom: -3 }}
+            />
+            <Handle
+                id="bottom-target"
+                type="target"
+                position={Position.Bottom}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, bottom: -3 }}
+            />
+            <Handle
+                id="right"
+                type="source"
+                position={Position.Right}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, right: -3 }}
+            />
+            <Handle
+                id="right-target"
+                type="target"
+                position={Position.Right}
+                isConnectable={!isReadOnly}
+                className={cn(
+                    "!w-3 !h-3 !border-2 transition-opacity",
+                    !isReadOnly && (isHovered || selected) ? "!opacity-100" : "!opacity-0"
+                )}
+                style={{ borderColor: data.color, right: -3 }}
+            />
         </div>
     );
 });

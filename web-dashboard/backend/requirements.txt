@@ -24,3 +24,7 @@ faiss-cpu>=1.7.4
 
 # Additional dependencies
 python-multipart>=0.0.6
+
+# MongoDB
+motor==3.3.2
+pymongo==4.6.1
