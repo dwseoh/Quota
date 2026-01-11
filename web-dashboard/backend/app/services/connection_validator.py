@@ -11,7 +11,7 @@ VALID_CONNECTIONS: dict[str, list[str]] = {
     "queue": ["backend"],
     "storage": [],
     "cicd": ["hosting"],
-    "monitoring": [],  # can connect to anything
+
     "search": ["database"],
 }
 

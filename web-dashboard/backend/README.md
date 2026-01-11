@@ -171,7 +171,7 @@ Configuration is managed through environment variables (see `.env.example`):
 - `PORT`: Server port (default: 8000)
 - `DEBUG`: Enable debug mode (default: false)
 - `CORS_ORIGINS`: Comma-separated list of allowed origins
-- `GEMINI_MODEL`: Gemini model to use (default: gemini-1.5-flash)
+- `GEMINI_MODEL`: Gemini model to use (default: gemini-2.5-flash)
 - `RAG_TOP_K`: Number of documents to retrieve for RAG (default: 3)
 
 ## Development

@@ -1,6 +1,7 @@
 """Configuration settings for the backend application."""
 import os
 from typing import Optional
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
 
@@ -13,8 +14,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     
     # Gemini API
-    gemini_api_key: Optional[str] = "AIzaSyBj48gH3p6t2ep3JpozSLEiow3X7nvAB8E"
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY")
+    gemini_model: str = "gemini-2.5-flash"
     
     # CORS
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
@@ -33,8 +34,9 @@ class Settings(BaseSettings):
     rag_top_k: int = 3  # Number of documents to retrieve
     
     class Config:
-        env_file = ".env"
+        env_file = [".env", "../../.env", "../../../.env"]
         case_sensitive = False
+        extra = "ignore"
 
 
 settings = Settings()

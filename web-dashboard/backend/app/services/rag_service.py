@@ -2,10 +2,10 @@
 
 import os
 from typing import List, Optional
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain.schema import Document
+from langchain_core.documents import Document
 from app.config import settings
 
 
@@ -26,31 +26,82 @@ class RAGService:
         # Initialize vector store
         self.vector_store: Optional[FAISS] = None
         
+        # Index persistence path
+        self.index_path = "faiss_index"
+        
         # Build knowledge base
         self._build_knowledge_base()
     
     def _build_knowledge_base(self):
         """Build the knowledge base from architecture documentation.
         
-        Note: This uses embeddings API only during initialization (once).
-        Per-request retrieval uses vector search only (no API calls).
+        Note: Checks for local index first to save API calls.
         """
-        documents = self._create_knowledge_documents()
-        
-        # Split documents into chunks
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-        )
-        chunks = text_splitter.split_documents(documents)
-        
-        # Create vector store (uses embeddings API once during initialization)
-        self.vector_store = FAISS.from_documents(chunks, self.embeddings)
+        # Try to load existing index
+        if os.path.exists(self.index_path):
+            try:
+                self.vector_store = FAISS.load_local(
+                    self.index_path, 
+                    self.embeddings,
+                    allow_dangerous_deserialization=True
+                )
+                print("Loaded FAISS index from disk.")
+                return
+            except Exception as e:
+                print(f"Failed to load index: {e}, rebuilding...")
+
+        # If loading failed or didn't exist, rebuild
+        try:
+            documents = self._create_knowledge_documents()
+            
+            # Split documents into chunks
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200,
+                length_function=len,
+            )
+            chunks = text_splitter.split_documents(documents)
+            
+            # Create vector store
+            self.vector_store = FAISS.from_documents(chunks, self.embeddings)
+            
+            # Save index to disk
+            self.vector_store.save_local(self.index_path)
+            print("Created and saved new FAISS index.")
+        except Exception as e:
+            error_msg = str(e)
+            if "RESOURCE_EXHAUSTED" in error_msg or "quota" in error_msg.lower():
+                print(f"⚠️  API quota exceeded. RAG disabled until quota resets. Error: {e}")
+                print("💡 The chatbot will still work but without architecture knowledge context.")
+                self.vector_store = None
+            else:
+                # Re-raise other errors
+                raise
     
     def _create_knowledge_documents(self) -> List[Document]:
         """Create knowledge base documents about architecture components and best practices."""
         docs = []
+        
+        # UI Constraints and Chat Width Recommendations
+        docs.append(Document(page_content="""
+        UI Constraints for Chat Responses:
+        - Typical chat panel width: 400-500px
+        - Avoid ASCII diagrams or wide code blocks that exceed chat width
+        - For complex visualizations, recommend implementing on the canvas
+        - Keep code examples concise and properly formatted
+        - Use markdown formatting for better readability in narrow spaces
+        - When users ask for diagrams, suggest using the canvas feature
+        """))
+        
+        # Canvas Implementation Guide
+        docs.append(Document(page_content="""
+        Canvas Implementation Keywords:
+        - "implement on canvas", "draw on canvas", "add to canvas"
+        - "create architecture", "design system", "build diagram"
+        - "visualize", "show me the architecture"
+        When users use these phrases, the system will automatically generate
+        the architecture diagram on the canvas using the mentioned components.
+        """))
         
         # Component categories and use cases
         docs.append(Document(page_content="""
@@ -148,6 +199,33 @@ class RAGService:
         - Firebase: Real-time sync, mobile apps, serverless
         - Redis: Caching, session storage, pub/sub messaging
         - DynamoDB: AWS ecosystem, auto-scaling, NoSQL needs
+        """))
+        
+        # Component Library Scope Recommendations
+        docs.append(Document(page_content="""
+        Scope-Based Component Recommendations:
+        
+        Small Scope (< 1000 users, low traffic):
+        - Database: Supabase (free tier), Firebase (free tier), PostgreSQL (self-hosted)
+        - Hosting: Vercel (free tier), Netlify (free tier), Railway ($5/mo)
+        - Backend: FastAPI, Express, Flask (all free, just hosting costs)
+        - Auth: Supabase Auth, Firebase Auth, NextAuth.js (all free)
+        
+        Medium Scope (1000-10000 users, moderate traffic):
+        - Database: PostgreSQL (managed), MySQL, Supabase (paid tier)
+        - Hosting: Vercel (pro), Railway, Render, Cloud Run
+        - Backend: FastAPI, NestJS, Django
+        - Auth: Clerk, Auth0, Supabase Auth
+        - Cache: Redis (managed)
+        
+        Large Scope (> 10000 users, high traffic):
+        - Database: PostgreSQL (enterprise), DynamoDB, MongoDB Atlas
+        - Hosting: AWS EC2, GCP Compute, Azure VM, Cloud Run (scaled)
+        - Backend: Spring Boot, NestJS, Go/Gin (high performance)
+        - Auth: Auth0, AWS Cognito
+        - Cache: Redis (enterprise), Memcached
+        - Queue: Kafka, RabbitMQ, AWS SQS
+        - Monitoring: DataDog, New Relic, Sentry
         """))
         
         return docs

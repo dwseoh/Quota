@@ -1,6 +1,8 @@
 """Chat API router."""
 
 import uuid
+import re
+import json
 from typing import Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from app.models.chat import ChatRequest, ChatResponse, ImplementRequest, ImplementResponse
@@ -53,14 +55,42 @@ def get_or_create_session(session_id: Optional[str]) -> str:
     return new_session_id
 
 
+def detect_canvas_intent(message: str) -> bool:
+    """
+    Detect if the user wants to implement something on the canvas.
+    
+    Very flexible detection - triggers on:
+    1. Any mention of "canvas", "diagram", "visualize"
+    2. Architecture-related words + action words (create, design, build, show, etc.)
+    """
+    message_lower = message.lower()
+    
+    # Direct canvas/diagram mentions
+    direct_triggers = ["canvas", "diagram", "visualize", "visualization", "draw", "sure","show"]
+    if any(trigger in message_lower for trigger in direct_triggers):
+        return True
+    
+    # Architecture-related keywords
+    architecture_terms = ["architecture", "system", "stack", "setup", "infrastructure"]
+    
+    # Action words
+    action_words = ["create", "design", "build", "make", "show", "implement", "set up", "add", "sure"]
+    
+    # Check if message contains both architecture term and action word
+    has_architecture = any(term in message_lower for term in architecture_terms)
+    has_action = any(action in message_lower for action in action_words)
+    
+    return has_architecture and has_action
+
+
 @router.post("", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
-    Handle chat messages with RAG context.
+    Handle chat messages with RAG context and canvas implementation detection.
     
     This endpoint processes user messages, retrieves relevant context,
-    and generates responses using Gemini. It can also suggest architecture
-    implementations if the user requests them.
+    and generates responses using Gemini. It can also detect when users
+    want to implement architectures on the canvas and generate the JSON.
     """
     try:
         # Get or create session
@@ -78,41 +108,102 @@ async def chat(request: ChatRequest):
         # Get conversation history
         conversation_history = session_history[-10:]  # Last 10 messages
         
+        # Prepare scope for context-aware recommendations
+        scope_dict = {
+            "users": request.architecture_json.scope.users,
+            "trafficLevel": request.architecture_json.scope.trafficLevel,
+            "dataVolumeGB": request.architecture_json.scope.dataVolumeGB,
+            "regions": request.architecture_json.scope.regions,
+            "availability": request.architecture_json.scope.availability,
+        }
+        
         # Generate response - SINGLE Gemini API call per request
         response_text = gemini.generate_response(
             user_message=request.message,
             context=context,
-            conversation_history=conversation_history if conversation_history else None
+            conversation_history=conversation_history if conversation_history else None,
+            chat_width=request.chat_width,
+            scope=scope_dict
         )
         
         # Add messages to session history
         session_history.append({"role": "user", "content": request.message})
         session_history.append({"role": "assistant", "content": response_text})
         
-        # Check if user is requesting implementation
-        # This is a simple heuristic - could be improved with better intent detection
+        # Detect canvas implementation intent
+        canvas_intent = detect_canvas_intent(request.message)
+        canvas_action = "none"
+        updated_architecture = None
+        
+        # Only generate architecture if canvas intent AND components are mentioned
+        # This prevents generation when AI is just asking questions
+        if canvas_intent:
+            # Extract component IDs mentioned in the user message and AI response
+            mentioned_components = gemini.extract_component_ids_from_text(
+                request.message + " " + response_text
+            )
+            
+            # Only generate if we found actual components (not just intent keywords)
+            if mentioned_components and len(mentioned_components) > 0:
+                # Generate architecture from mentioned components
+                updated_architecture = arch_service.generate_architecture_from_components(
+                    component_ids=mentioned_components,
+                    scope=request.architecture_json.scope
+                )
+                canvas_action = "update"
+                print(f"🎨 Generating canvas with components: {mentioned_components}")
+            else:
+                print("💬 Canvas intent detected but no components mentioned - likely clarifying questions")
+                canvas_action = "none"
+        
+        # Extract scope analysis if present
+        updated_scope = None
+        try:
+            # Look for JSON block with scope_analysis
+            json_match = re.search(r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group(1))
+                if "scope_analysis" in data:
+                    analysis = data["scope_analysis"]
+                    # Map to Scope fields (removing estimatedCost as it's not in Scope model directly, or handling it separately)
+                    # The Scope model has: users, trafficLevel, dataVolumeGB, regions, availability
+                    updated_scope = {
+                        "users": analysis.get("users"),
+                        "trafficLevel": analysis.get("trafficLevel"),
+                        "dataVolumeGB": analysis.get("dataVolumeGB"),
+                        "regions": analysis.get("regions"),
+                        "availability": analysis.get("availability")
+                    }
+                    # Filter out None values
+                    updated_scope = {k: v for k, v in updated_scope.items() if v is not None}
+                    print(f"📊 Detected scope update: {updated_scope}")
+                    
+                    # Remove the JSON block from the visible response
+                    response_text = response_text.replace(json_match.group(0), "").strip()
+        except Exception as e:
+            print(f"⚠️ Failed to parse scope JSON: {str(e)}")
+        
+        
+        # Check for general implementation keywords (for backward compatibility)
         suggest_implementation = any(
             keyword in request.message.lower()
             for keyword in ["implement", "create", "build", "design", "set up", "add"]
         )
         
-        # If implementation is suggested, generate architecture
-        updated_architecture = None
-        if suggest_implementation:
-            # Try to extract component mentions or generate a basic architecture
-            # This is simplified - in production, use better NLP to extract intent
-            updated_architecture = request.architecture_json
-        
         response = ChatResponse(
             message=response_text,
             session_id=session_id,
             suggest_implementation=suggest_implementation,
-            updated_architecture=updated_architecture
+            updated_architecture=updated_architecture,
+            canvas_action=canvas_action,
+            updated_scope=updated_scope
         )
         
         return response
     
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
 
 
@@ -165,3 +256,4 @@ async def delete_session(session_id: str):
     if session_id in sessions:
         del sessions[session_id]
     return {"message": "Session deleted"}
+

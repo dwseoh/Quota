@@ -27,6 +27,8 @@ class Edge(BaseModel):
     id: Optional[str] = None
     source: str
     target: str
+    sourceHandle: Optional[str] = None
+    targetHandle: Optional[str] = None
     type: Optional[str] = "custom"
 
 

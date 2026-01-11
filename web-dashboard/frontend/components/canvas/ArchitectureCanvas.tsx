@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
     ReactFlow,
     Background,
@@ -9,11 +9,14 @@ import {
     BackgroundVariant,
     NodeTypes,
     EdgeTypes,
+    ControlButton,
+    ConnectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useArchitectureStore } from "@/lib/store";
 import CustomNode from "./CustomNode";
 import CustomEdge from "./CustomEdge";
+import { Lock, Unlock } from "lucide-react";
 
 const nodeTypes: NodeTypes = {
     custom: CustomNode,
@@ -30,7 +33,22 @@ export default function ArchitectureCanvas() {
         onNodesChange,
         onEdgesChange,
         onConnect,
+        isLocked,
+        toggleLock,
     } = useArchitectureStore();
+
+    // Deselect all nodes when entering lock mode
+    useEffect(() => {
+        if (isLocked) {
+            useArchitectureStore.getState().onNodesChange(
+                nodes.map((node) => ({
+                    id: node.id,
+                    type: "select",
+                    selected: false,
+                }))
+            );
+        }
+    }, [isLocked]);
 
     const onDragOver = useCallback((event: React.DragEvent) => {
         event.preventDefault();
@@ -39,6 +57,7 @@ export default function ArchitectureCanvas() {
 
     const onDrop = useCallback(
         (event: React.DragEvent) => {
+            if (isLocked) return;
             event.preventDefault();
 
             const componentData = event.dataTransfer.getData("application/reactflow");
@@ -72,7 +91,7 @@ export default function ArchitectureCanvas() {
 
             useArchitectureStore.getState().addNode(newNode);
         },
-        []
+        [isLocked]
     );
 
     return (
@@ -85,7 +104,13 @@ export default function ArchitectureCanvas() {
                 onConnect={onConnect}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
+                nodesDraggable={!isLocked}
+                nodesConnectable={!isLocked}
+                elementsSelectable={!isLocked}
+                connectionMode={ConnectionMode.Loose}
+                proOptions={{ hideAttribution: true }}
                 onPaneClick={() => {
+                    if (isLocked) return;
                     // Deselect all nodes when clicking on empty canvas
                     useArchitectureStore.getState().onNodesChange(
                         nodes.map((node) => ({
@@ -110,12 +135,21 @@ export default function ArchitectureCanvas() {
                     size={2}
                     color="rgba(255, 255, 255, 0.2)"
                 />
-                <Controls className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg [&>button]:!bg-[var(--background-tertiary)] [&>button]:!rounded-lg [&>button]:!border [&>button]:!border-[var(--border)] [&>button]:!w-8 [&>button]:!h-8" />
+                <Controls
+                    showInteractive={false}
+                    className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg [&>button]:!bg-[var(--background-tertiary)] [&>button]:!rounded-lg [&>button]:!border [&>button]:!border-[var(--border)] [&>button]:!w-8 [&>button]:!h-8"
+                >
+                    <ControlButton onClick={toggleLock} title={isLocked ? "Unlock Canvas" : "Lock Canvas"}>
+                        {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                    </ControlButton>
+                </Controls>
                 <MiniMap
-                    className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg"
+                    style={{ height: 100, width: 140 }}
+                    className="!bg-[var(--glass-bg)]/20 !border-[var(--border)]/30 !backdrop-blur-[4px] !rounded-lg !shadow-sm !bottom-2 !right-2"
+                    maskColor="rgba(0, 0, 0, 0.05)"
                     nodeColor={(node) => {
                         const data = node.data as any;
-                        return data.color || "var(--primary)";
+                        return data.color ? `${data.color}80` : "#888";
                     }}
                 />
             </ReactFlow>

@@ -161,6 +161,12 @@ class ArchitectureService:
         """
         Generate a complete architecture from a list of component IDs.
         
+        Uses a smart layout algorithm to position nodes in logical layers:
+        - Layer 1 (top): Frontend, Hosting
+        - Layer 2 (middle): Backend, Auth
+        - Layer 3 (bottom): Database, Cache, Queue, Storage
+        - Layer 4 (services): CI/CD, Monitoring, ML, Search
+        
         Args:
             component_ids: List of component IDs to include
             scope: Optional scope configuration
@@ -174,81 +180,222 @@ class ArchitectureService:
             scope=scope or Scope(),
         )
         
-        # Create nodes
+        # Organize nodes by category
         nodes_by_category = {}
         for comp_id in component_ids:
-            node = self.create_node(comp_id)
-            if node:
-                architecture.nodes.append(node)
-                category = node.data.category
-                if category not in nodes_by_category:
-                    nodes_by_category[category] = []
-                nodes_by_category[category].append(node)
+            component = get_component_by_id(comp_id)
+            if not component:
+                continue
+                
+            # Find category
+            category = None
+            for cat in COMPONENT_LIBRARY:
+                if any(c.id == comp_id for c in cat.components):
+                    category = cat.id
+                    break
+            
+            if category not in nodes_by_category:
+                nodes_by_category[category] = []
+            nodes_by_category[category].append(comp_id)
         
-        # Create connections based on category relationships
+        # Define layout layers
+        layer_config = {
+            1: ["frontend", "hosting"],  # Top layer
+            2: ["backend", "auth"],  # Middle layer
+            3: ["database", "cache", "queue", "storage"],  # Data layer
+            4: ["cicd", "monitoring", "ml", "search"]  # Services layer
+        }
+        
+        # Position nodes in layers
+        y_spacing = 200
+        x_spacing = 250
+        start_y = 100
+        
+        for layer_num, categories in layer_config.items():
+            layer_nodes = []
+            for cat in categories:
+                if cat in nodes_by_category:
+                    layer_nodes.extend([(comp_id, cat) for comp_id in nodes_by_category[cat]])
+            
+            if not layer_nodes:
+                continue
+            
+            # Calculate positions for this layer
+            y_pos = start_y + (layer_num - 1) * y_spacing
+            total_width = len(layer_nodes) * x_spacing
+            start_x = max(100, (800 - total_width) // 2)  # Center horizontally
+            
+            for idx, (comp_id, cat) in enumerate(layer_nodes):
+                x_pos = start_x + idx * x_spacing
+                node = self.create_node(comp_id, position={"x": x_pos, "y": y_pos})
+                if node:
+                    architecture.nodes.append(node)
+                    if cat not in nodes_by_category:
+                        nodes_by_category[cat] = []
+        
+        # Helper to get nodes by category
+        def get_nodes_by_category(cat: str):
+            return [n for n in architecture.nodes if n.data.category == cat]
+        
+        # Helper to find node by id
+        def get_node_by_id(node_id: str):
+            for node in architecture.nodes:
+                if node.id == node_id:
+                    return node
+            return None
+        
+        # Create smart connections
+        edges_created = set()  # Track to avoid duplicates
+        
+        def add_edge(source_id: str, target_id: str):
+            """Add edge with smart handle selection based on node positions"""
+            if source_id == target_id:
+                return  # Prevent self-connections
+            
+            edge_key = f"{source_id}-{target_id}"
+            reverse_key = f"{target_id}-{source_id}"
+            if edge_key in edges_created:
+                return  # Already exists
+            
+            # Get node positions
+            source_node = get_node_by_id(source_id)
+            target_node = get_node_by_id(target_id)
+            
+            if not source_node or not target_node:
+                return
+            
+            source_y = source_node.position.get("y", 0)
+            target_y = target_node.position.get("y", 0)
+            source_x = source_node.position.get("x", 0)
+            target_x = target_node.position.get("x", 0)
+            
+            # Determine handles based on relative positions
+            source_handle = None
+            target_handle = None
+            
+            # Vertical difference is more significant than horizontal
+            if abs(source_y - target_y) > abs(source_x - target_x):
+                if source_y < target_y:
+                    # Source is above target
+                    source_handle = "bottom"
+                    target_handle = "top"
+                else:
+                    # Source is below target
+                    source_handle = "top"
+                    target_handle = "bottom"
+            else:
+                # Horizontal connection
+                if source_x < target_x:
+                    # Source is left of target
+                    source_handle = "right"
+                    target_handle = "left"
+                else:
+                    # Source is right of target
+                    source_handle = "left"
+                    target_handle = "right"
+            
+            architecture.edges.append(Edge(
+                id=self.generate_id(),
+                source=source_id,
+                target=target_id,
+                sourceHandle=source_handle,
+                targetHandle=target_handle,
+                type="custom"
+            ))
+            edges_created.add(edge_key)
+        
         # Frontend -> Backend
-        if "frontend" in nodes_by_category and "backend" in nodes_by_category:
-            for frontend_node in nodes_by_category["frontend"]:
-                for backend_node in nodes_by_category["backend"]:
-                    if validate_connection("frontend", "backend"):
-                        edge = Edge(
-                            id=self.generate_id(),
-                            source=frontend_node.id,
-                            target=backend_node.id,
-                            type="custom"
-                        )
-                        architecture.edges.append(edge)
+        for frontend in get_nodes_by_category("frontend"):
+            for backend in get_nodes_by_category("backend"):
+                add_edge(frontend.id, backend.id)
         
         # Backend -> Database
-        if "backend" in nodes_by_category and "database" in nodes_by_category:
-            for backend_node in nodes_by_category["backend"]:
-                for db_node in nodes_by_category["database"]:
-                    if validate_connection("backend", "database"):
-                        edge = Edge(
-                            id=self.generate_id(),
-                            source=backend_node.id,
-                            target=db_node.id,
-                            type="custom"
-                        )
-                        architecture.edges.append(edge)
+        for backend in get_nodes_by_category("backend"):
+            for db in get_nodes_by_category("database"):
+                add_edge(backend.id, db.id)
+        
+        # Database -> Cache (cache population/invalidation logic often flows this way conceptually or via CDC)
+        for db in get_nodes_by_category("database"):
+            for cache in get_nodes_by_category("cache"):
+                add_edge(db.id, cache.id)
         
         # Backend -> Cache
-        if "backend" in nodes_by_category and "cache" in nodes_by_category:
-            for backend_node in nodes_by_category["backend"]:
-                for cache_node in nodes_by_category["cache"]:
-                    if validate_connection("backend", "cache"):
-                        edge = Edge(
-                            id=self.generate_id(),
-                            source=backend_node.id,
-                            target=cache_node.id,
-                            type="custom"
-                        )
-                        architecture.edges.append(edge)
+        for backend in get_nodes_by_category("backend"):
+            for cache in get_nodes_by_category("cache"):
+                add_edge(backend.id, cache.id)
+        
+        # Backend -> Queue
+        for backend in get_nodes_by_category("backend"):
+            for queue in get_nodes_by_category("queue"):
+                add_edge(backend.id, queue.id)
+                # Queue -> Backend (worker/consumer pattern)
+                add_edge(queue.id, backend.id)
         
         # Backend -> Auth
-        if "backend" in nodes_by_category and "auth" in nodes_by_category:
-            for backend_node in nodes_by_category["backend"]:
-                for auth_node in nodes_by_category["auth"]:
-                    if validate_connection("backend", "auth"):
-                        edge = Edge(
-                            id=self.generate_id(),
-                            source=backend_node.id,
-                            target=auth_node.id,
-                            type="custom"
-                        )
-                        architecture.edges.append(edge)
+        for backend in get_nodes_by_category("backend"):
+            for auth in get_nodes_by_category("auth"):
+                add_edge(backend.id, auth.id)
         
         # Auth -> Database
-        if "auth" in nodes_by_category and "database" in nodes_by_category:
-            for auth_node in nodes_by_category["auth"]:
-                for db_node in nodes_by_category["database"]:
-                    if validate_connection("auth", "database"):
-                        edge = Edge(
-                            id=self.generate_id(),
-                            source=auth_node.id,
-                            target=db_node.id,
-                            type="custom"
-                        )
-                        architecture.edges.append(edge)
+        for auth in get_nodes_by_category("auth"):
+            for db in get_nodes_by_category("database"):
+                add_edge(auth.id, db.id)
+        
+        # Backend -> Storage
+        for backend in get_nodes_by_category("backend"):
+            for storage in get_nodes_by_category("storage"):
+                add_edge(backend.id, storage.id)
+        
+        # Backend -> ML
+        for backend in get_nodes_by_category("backend"):
+            for ml in get_nodes_by_category("ml"):
+                add_edge(backend.id, ml.id)
+        
+        # ML -> Storage (model artifacts, datasets)
+        for ml in get_nodes_by_category("ml"):
+            for storage in get_nodes_by_category("storage"):
+                add_edge(ml.id, storage.id)
+                
+        # ML -> Database (metadata, feature store)
+        for ml in get_nodes_by_category("ml"):
+            for db in get_nodes_by_category("database"):
+                add_edge(ml.id, db.id)
+        
+        # Backend -> Search
+        for backend in get_nodes_by_category("backend"):
+            for search in get_nodes_by_category("search"):
+                add_edge(backend.id, search.id)
+        
+        # Search -> Database (indexing)
+        for search in get_nodes_by_category("search"):
+            for db in get_nodes_by_category("database"):
+                add_edge(search.id, db.id)
+        
+        # Frontend -> Hosting (frontend hosting)
+        for frontend in get_nodes_by_category("frontend"):
+            for hosting in get_nodes_by_category("hosting"):
+                # Only connect if it's a frontend hosting service
+                if any(keyword in hosting.data.componentId for keyword in ["vercel", "netlify"]):
+                    add_edge(frontend.id, hosting.id)
+        
+        # Backend -> Hosting (backend hosting)
+        for backend in get_nodes_by_category("backend"):
+            for hosting in get_nodes_by_category("hosting"):
+                # Connect to backend hosting services
+                if any(keyword in hosting.data.componentId for keyword in ["railway", "render", "cloudrun", "ec2", "compute", "azure"]):
+                    add_edge(backend.id, hosting.id)
+        
+        # CI/CD -> Backend (deployment target)
+        for cicd in get_nodes_by_category("cicd"):
+            for backend in get_nodes_by_category("backend"):
+                add_edge(cicd.id, backend.id)
+            for frontend in get_nodes_by_category("frontend"):
+                add_edge(cicd.id, frontend.id)
+        
+        # Monitoring -> Backend
+        for monitoring in get_nodes_by_category("monitoring"):
+            for backend in get_nodes_by_category("backend"):
+                add_edge(monitoring.id, backend.id)
         
         return architecture
+

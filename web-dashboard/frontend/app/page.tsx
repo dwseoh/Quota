@@ -10,8 +10,10 @@ import { Layers, Save, Upload, Trash2 } from "lucide-react";
 import { useArchitectureStore } from "@/lib/store";
 
 export default function Home() {
-  const { saveToFile, loadFromFile, clearCanvas } = useArchitectureStore();
+  const { saveToFile, loadFromFile, clearCanvas, projectName, setProjectName } = useArchitectureStore();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [tempName, setTempName] = React.useState(projectName);
 
   const handleLoadFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -31,6 +33,34 @@ export default function Home() {
     }
   };
 
+  const handleNameClick = () => {
+    setIsEditingName(true);
+    setTempName(projectName);
+  };
+
+  const handleNameBlur = () => {
+    setIsEditingName(false);
+    if (tempName.trim()) {
+      setProjectName(tempName.trim());
+    } else {
+      setTempName(projectName);
+    }
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleNameBlur();
+    } else if (e.key === "Escape") {
+      setIsEditingName(false);
+      setTempName(projectName);
+    }
+  };
+
+  // Sync tempName when projectName changes (e.g., after loading a file)
+  React.useEffect(() => {
+    setTempName(projectName);
+  }, [projectName]);
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[var(--background)] overflow-hidden">
       {/* Top Navigation */}
@@ -40,9 +70,25 @@ export default function Home() {
             <Layers className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-[var(--foreground)]">
-              Architecture Sandbox
-            </h1>
+            {isEditingName ? (
+              <input
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onBlur={handleNameBlur}
+                onKeyDown={handleNameKeyDown}
+                autoFocus
+                className="text-lg font-bold text-[var(--foreground)] bg-[var(--background-tertiary)] border border-[var(--primary)] rounded px-2 py-0.5 outline-none w-[300px]"
+              />
+            ) : (
+              <h1
+                className="text-lg font-bold text-[var(--foreground)] cursor-pointer hover:text-[var(--primary)] transition-colors truncate max-w-[300px]"
+                onClick={handleNameClick}
+                title={projectName}
+              >
+                {projectName}
+              </h1>
+            )}
             <p className="text-xs text-[var(--foreground-secondary)]">
               Design, estimate, and optimize your stack
             </p>

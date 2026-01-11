@@ -1,12 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useArchitectureStore } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp, Calculator } from "lucide-react";
 
 export default function CostEstimatePanel() {
-    const { costEstimate, scope } = useArchitectureStore();
+    const { costEstimate, scope, recalculateCosts } = useArchitectureStore();
+
+    useEffect(() => {
+        recalculateCosts();
+    }, [recalculateCosts]);
 
     const categoryTotals = costEstimate.breakdown.reduce((acc, item) => {
         if (!acc[item.category]) {
@@ -17,7 +21,7 @@ export default function CostEstimatePanel() {
     }, {} as Record<string, number>);
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 h-full overflow-y-auto">
             {/* Total Cost */}
             <div className="glass rounded-xl p-4 border border-[var(--glass-border)]">
                 <div className="text-sm text-[var(--foreground-secondary)] mb-1">
@@ -103,8 +107,10 @@ export default function CostEstimatePanel() {
             )}
 
             {costEstimate.breakdown.length === 0 && (
-                <div className="glass rounded-xl p-8 border border-[var(--glass-border)] text-center">
-                    <div className="text-4xl mb-2">📊</div>
+                <div className="glass rounded-xl p-8 border border-[var(--glass-border)] text-center flex flex-col items-center">
+                    <div className="w-12 h-12 bg-[var(--background-tertiary)] rounded-full flex items-center justify-center mb-3">
+                        <Calculator className="w-6 h-6 text-[var(--foreground-secondary)]" />
+                    </div>
                     <div className="text-sm text-[var(--foreground-secondary)]">
                         Add components to see cost estimates
                     </div>

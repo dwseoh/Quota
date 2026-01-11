@@ -154,7 +154,7 @@ export default function ComponentLibrary() {
                                                 "border border-transparent hover:border-[var(--border)]"
                                             )}
                                             style={{
-                                                background: `linear-gradient(90deg, ${component.color}10 0%, transparent 100%)`,
+                                                background: `linear-gradient(90deg, ${isDarkColor(component.color) ? "rgba(255,255,255,0.05)" : component.color + "10"} 0%, transparent 100%)`,
                                             }}
                                         >
                                             <ComponentIcon

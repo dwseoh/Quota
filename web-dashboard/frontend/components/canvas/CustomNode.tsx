@@ -4,6 +4,7 @@ import React, { memo, useState } from "react";
 import { Handle, Position, NodeProps, Node, useReactFlow } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { Box, Trash2 } from "lucide-react";
+import { useArchitectureStore } from "@/lib/store";
 
 export interface CustomNodeData extends Record<string, unknown> {
     label: string;
@@ -30,6 +31,7 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
     const [isHovered, setIsHovered] = useState(false);
     const needsWhiteBg = isDarkColor(data.color);
     const { setNodes } = useReactFlow();
+    const isLocked = useArchitectureStore((state) => state.isLocked);
 
     const deleteNode = () => {
         setNodes((nodes) => nodes.filter((node) => node.id !== id));
@@ -38,51 +40,77 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
     return (
         <div
             className={cn(
-                "px-4 py-3 rounded-xl border-2 transition-all duration-200 min-w-[140px] relative",
-                "glass shadow-md hover:shadow-lg",
-                selected
+                "px-4 py-3 rounded-xl border-2 transition-all duration-200 min-w-[140px] relative backdrop-blur-xl",
+                "shadow-md hover:shadow-lg",
+                selected && !isLocked
                     ? "border-[var(--primary)] shadow-[0_0_20px_rgba(99,102,241,0.5)] scale-105"
                     : "border-[var(--glass-border)]"
             )}
             style={{
-                background: `linear-gradient(135deg, ${data.color}15 0%, ${data.color}05 100%)`,
+                background: `linear-gradient(135deg, ${data.color}20 0%, ${data.color}05 100%)`,
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {/* Delete button - shows on hover or select */}
-            {(isHovered || selected) && (
+            {/* Delete button - shows on hover or select (only if not locked) */}
+            {!isLocked && (isHovered || selected) && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         deleteNode();
                     }}
-                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[var(--error)] hover:bg-red-600 flex items-center justify-center transition-all shadow-lg hover:scale-110 z-10"
+                    className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-[var(--error)] hover:bg-red-600 flex items-center justify-center transition-all shadow-lg hover:scale-110 z-10"
                     title="Delete node"
                 >
                     <Trash2 className="w-3 h-3 text-white" />
                 </button>
             )}
 
-            {/* Handles - only visible on hover or when selected */}
-            <Handle
-                type="target"
-                position={Position.Top}
-                className={cn(
-                    "!w-3 !h-3 !border-2 transition-opacity",
-                    isHovered || selected ? "!opacity-100" : "!opacity-0"
-                )}
-                style={{ borderColor: data.color, top: 0 }}
-            />
-            <Handle
-                type="target"
-                position={Position.Left}
-                className={cn(
-                    "!w-3 !h-3 !border-2 transition-opacity",
-                    isHovered || selected ? "!opacity-100" : "!opacity-0"
-                )}
-                style={{ borderColor: data.color, left: 0 }}
-            />
+            {/* Handles - only visible on hover or when selected, hidden when locked */}
+            {!isLocked && (
+                <>
+                    <Handle
+                        id="top"
+                        type="source"
+                        position={Position.Top}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, top: -3 }}
+                    />
+                    <Handle
+                        id="top-target"
+                        type="target"
+                        position={Position.Top}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, top: -3 }}
+                    />
+                    <Handle
+                        id="left"
+                        type="source"
+                        position={Position.Left}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, left: -3 }}
+                    />
+                    <Handle
+                        id="left-target"
+                        type="target"
+                        position={Position.Left}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, left: -3 }}
+                    />
+                </>
+            )}
 
             <div className="flex items-center gap-2">
                 <div
@@ -113,24 +141,50 @@ const CustomNode = memo(({ data, selected, id }: NodeProps<Node<CustomNodeData>>
                 </div>
             </div>
 
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                className={cn(
-                    "!w-3 !h-3 !border-2 transition-opacity",
-                    isHovered || selected ? "!opacity-100" : "!opacity-0"
-                )}
-                style={{ borderColor: data.color, bottom: 0 }}
-            />
-            <Handle
-                type="source"
-                position={Position.Right}
-                className={cn(
-                    "!w-3 !h-3 !border-2 transition-opacity",
-                    isHovered || selected ? "!opacity-100" : "!opacity-0"
-                )}
-                style={{ borderColor: data.color, right: 0 }}
-            />
+            {!isLocked && (
+                <>
+                    <Handle
+                        id="bottom"
+                        type="source"
+                        position={Position.Bottom}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, bottom: -3 }}
+                    />
+                    <Handle
+                        id="bottom-target"
+                        type="target"
+                        position={Position.Bottom}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, bottom: -3 }}
+                    />
+                    <Handle
+                        id="right"
+                        type="source"
+                        position={Position.Right}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, right: -3 }}
+                    />
+                    <Handle
+                        id="right-target"
+                        type="target"
+                        position={Position.Right}
+                        className={cn(
+                            "!w-3 !h-3 !border-2 transition-opacity",
+                            isHovered || selected ? "!opacity-100" : "!opacity-0"
+                        )}
+                        style={{ borderColor: data.color, right: -3 }}
+                    />
+                </>
+            )}
         </div>
     );
 });
