@@ -9,20 +9,24 @@
   --foreground-secondary: #a8a8b8;
   --border: #2a2a38;
   --border-hover: #3a3a48;
-  
-  /* Accent colors */
-  --primary: #6366f1;
-  --primary-hover: #7c3aed;
-  --secondary: #8b5cf6;
+
+  --primary: #14b8a6;
+  /* teal-green */
+  --primary-hover: #0f766e;
+  --secondary: #2dd4bf;
+  --secondary-light: #5eead4;
+  /* lighter teal for chat bubbles */
+
   --accent: #ec4899;
-  --success: #10b981;
+  --success: #28ad4e;
+
   --warning: #f59e0b;
   --error: #ef4444;
-  
+
   /* Glassmorphism */
   --glass-bg: rgba(18, 18, 26, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
-  
+
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
@@ -88,6 +92,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -98,15 +103,19 @@ body {
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -116,6 +125,7 @@ body {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }

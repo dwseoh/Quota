@@ -6,7 +6,8 @@ import ComponentLibrary from "@/components/sidebar/ComponentLibrary";
 import ArchitectureCanvas from "@/components/canvas/ArchitectureCanvas";
 import RightSidebar from "@/components/sidebar/RightSidebar";
 import ScopePanel from "@/components/scope/ScopePanel";
-import { Layers, Save, Upload, Trash2 } from "lucide-react";
+import Logo from "@/components/Logo";
+import { Save, Upload, Trash2 } from "lucide-react";
 import { useArchitectureStore } from "@/lib/store";
 
 export default function Home() {
@@ -61,13 +62,18 @@ export default function Home() {
     setTempName(projectName);
   }, [projectName]);
 
+  // Update document title
+  React.useEffect(() => {
+    document.title = `Quota Sandbox | ${projectName}`;
+  }, [projectName]);
+
   return (
     <div className="h-screen w-screen flex flex-col bg-[var(--background)] overflow-hidden">
       {/* Top Navigation */}
       <header className="h-14 border-b border-[var(--border)] bg-[var(--background-secondary)] flex items-center justify-between px-6 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] flex items-center justify-center">
-            <Layers className="w-5 h-5 text-white" />
+            <Logo className="w-5 h-5 text-white" />
           </div>
           <div>
             {isEditingName ? (

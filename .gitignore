@@ -86,3 +86,5 @@ temp/
 .parcel-cache/
 .eslintcache
 .stylelintcache
+*__pycache__
+/__pycache__

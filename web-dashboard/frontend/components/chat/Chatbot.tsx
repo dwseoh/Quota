@@ -193,7 +193,7 @@ export default function Chatbot() {
                                 )}
                                 <div
                                     className={`max-w-[80%] px-4 py-2 rounded-xl ${message.role === "user"
-                                        ? "bg-[var(--primary)] text-white"
+                                        ? "bg-[#99f6e4] text-black"
                                         : "glass border border-[var(--glass-border)] text-[var(--foreground)]"
                                         }`}
                                 >
