@@ -436,9 +436,16 @@ export function detectProvidersQuick(bundle: ContextBundle): string[] {
     };
 
     for (const [pattern, provider] of Object.entries(quickChecks)) {
+        // Check imports
         if (imports.includes(pattern)) {
-            console.log(`  ✅ Detected: ${provider} (pattern: ${pattern})`);
+            console.log(`  ✅ Detected via Import: ${provider} (pattern: ${pattern})`);
             providers.push(provider);
+        }
+        
+        // Also check code body for direct usage (e.g. mock objects, require, or global usage)
+        if (bundle.code.toLowerCase().includes(pattern)) {
+             console.log(`  ✅ Detected via Code: ${provider} (pattern: ${pattern})`);
+             providers.push(provider);
         }
     }
 

@@ -196,6 +196,7 @@ function extractModelFromCode(code: string, provider: string): string {
   // Look for model parameter
   const modelMatch = code.match(/model\s*[:=]\s*["']([^"']+)["']/);
   if (modelMatch) {
+    console.log(`  🎯 Extracted model: ${modelMatch[1]}`);
     return modelMatch[1];
   }
 
@@ -219,10 +220,10 @@ function extractPromptFromCode(code: string): string {
 
   const messagesMatch = code.match(/messages\s*[:=]\s*\[(.*?)\]/s);
   if (messagesMatch) {
-    return messagesMatch[1].substring(0, 200); // Truncate for estimation
+    return messagesMatch[1].substring(0, 500); 
   }
 
-  return code.substring(0, 200); // Fallback: use first 200 chars
+  return code.substring(0, 500);
 }
 
 /**

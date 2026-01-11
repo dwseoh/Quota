@@ -30,8 +30,7 @@ export class MarketingController {
         }
         res.json(results);
     }
-
-    // Helper method called in loop
+    
     private async analyzeEventType(type: string) {
         return await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
