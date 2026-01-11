@@ -111,6 +111,19 @@ export default function ArchitectureCanvas({ readOnly = false }: ArchitectureCan
         [isLocked]
     );
 
+    const handleConnect = useCallback((connection: any) => {
+        // Deselect all nodes before creating connection to avoid interference
+        useArchitectureStore.getState().onNodesChange(
+            nodes.map((node) => ({
+                id: node.id,
+                type: "select" as const,
+                selected: false,
+            }))
+        );
+        // Then create the connection
+        onConnect(connection);
+    }, [nodes, onConnect]);
+
     return (
         <div className="w-full h-full">
             <ReactFlow
@@ -118,12 +131,13 @@ export default function ArchitectureCanvas({ readOnly = false }: ArchitectureCan
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
+                onConnect={handleConnect}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 nodesDraggable={!isLocked}
                 nodesConnectable={!isLocked}
                 elementsSelectable={!isLocked}
+                selectNodesOnDrag={false}
                 connectionMode={ConnectionMode.Loose}
                 proOptions={{ hideAttribution: true }}
                 onPaneClick={() => {
