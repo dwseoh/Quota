@@ -94,6 +94,26 @@ export class PatternDetector implements OptimizationDetector {
             severity: 'warning',
             costImpact: 'Medium',
             fileExtensions: ['vercel.json']
+        },
+
+        // --- Advanced Patterns ---
+        {
+            id: 'anthropic-prompt-caching',
+            regex: /anthropic\.messages\.create|Anthropic.*\.messages\.create/g,
+            title: 'Consider Prompt Caching',
+            message: 'If this call involves large repeated context (>1024 tokens), use Anthropic Prompt Caching headers to reduce costs by up to 90%.',
+            severity: 'info',
+            costImpact: 'Medium',
+            fileExtensions: ['.ts', '.js', '.py']
+        },
+        {
+            id: 'mongo-projection',
+            regex: /\.find\(\s*(\{\s*\}|\s*)\)/g, // .find({}) or .find()
+            title: 'Unoptimized Query (Projection)',
+            message: 'Avoid fetching full documents if not needed. Use projection to select only necessary fields.',
+            severity: 'info',
+            costImpact: 'Low',
+            fileExtensions: ['.ts', '.js']
         }
     ];
 

@@ -17,6 +17,8 @@ export class LoopDetector implements OptimizationDetector {
         'fetch', 'axios', 'request'
     ];
 
+    private cachePatterns = ['cache', 'redis', 'memcached', 'memoize', 'store', 'kv'];
+
     async analyze(context: FileContext, codeUnits?: CodeUnit[]): Promise<OptimizationSuggestion[]> {
         const suggestions: OptimizationSuggestion[] = [];
         const isPython = context.languageId === 'python' || context.uri.fsPath.endsWith('.py');
@@ -43,7 +45,8 @@ export class LoopDetector implements OptimizationDetector {
                 range: true
             });
 
-            const walk = (node: any, inLoop: boolean) => {
+            // Keep track of the current loop node we are inside
+            const walk = (node: any, currentLoop: any | null) => {
                 if (!node || typeof node !== 'object') return;
 
                 // Check for loops
@@ -52,10 +55,12 @@ export class LoopDetector implements OptimizationDetector {
                                node.type === 'ForInStatement' || 
                                node.type === 'WhileStatement' || 
                                node.type === 'DoWhileStatement';
+                
+                const activeLoop = isLoop ? node : currentLoop;
 
                 // Check for CallExpressions (function calls)
-                if (inLoop && node.type === 'CallExpression') {
-                    this.checkCallExpression(node, fileUri, suggestions);
+                if (activeLoop && node.type === 'CallExpression') {
+                    this.checkCallExpression(node, activeLoop, content, fileUri, suggestions);
                 }
 
                 // Traverse children safely
@@ -65,19 +70,17 @@ export class LoopDetector implements OptimizationDetector {
                         if (Array.isArray(child)) {
                             child.forEach((c: any) => {
                                 if (c && typeof c === 'object' && c.type) {
-                                    walk(c, inLoop || isLoop);
+                                    walk(c, activeLoop);
                                 }
                             });
                         } else if (child.type) {
-                            // Only walk objects that look like AST nodes (have 'type')
-                            // This avoids walking 'loc', 'range', 'parent' etc.
-                            walk(child, inLoop || isLoop);
+                            walk(child, activeLoop);
                         }
                     }
                 }
             };
 
-            walk(ast, false);
+            walk(ast, null);
 
         } catch (err) {
             console.warn(`LoopDetector: Failed to parse TS/JS: ${err}`);
@@ -97,7 +100,7 @@ export class LoopDetector implements OptimizationDetector {
     /**
      * Check if a CallExpression matches a cost pattern
      */
-    private checkCallExpression(node: any, fileUri: string, suggestions: OptimizationSuggestion[]) {
+    private checkCallExpression(node: any, loopNode: any, content: string, fileUri: string, suggestions: OptimizationSuggestion[]) {
         let callName = '';
 
         if (node.callee) {
@@ -110,11 +113,28 @@ export class LoopDetector implements OptimizationDetector {
             const match = this.costPatterns.some(pattern => lowerName.includes(pattern.toLowerCase()));
             
             if (match) {
+                // Check if the loop body contains cache logic
+                // We extract the text of the loop
+                const loopText = content.substring(loopNode.range[0], loopNode.range[1]);
+                const hasCache = this.cachePatterns.some(pattern => loopText.toLowerCase().includes(pattern));
+
+                let description = `Detected potential costly operation '${callName}' inside a loop. `;
+                let title = 'Costly Operation in Loop';
+
+                if (hasCache) {
+                    // Logic exists, but still warn gently or maybe skip? 
+                    // Let's warn but acknowledge the cache
+                    description += `It looks like you have some caching logic, but verify it effectively reduces calls.`;
+                    title = 'Verify Cache Effectiveness';
+                } else {
+                    description += `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`;
+                }
+
                 suggestions.push({
                     id: `loop-cost-${node.loc.start.line}`,
-                    title: 'Costly Operation in Loop',
-                    description: `Detected potential costly operation '${callName}' inside a loop. Consider batching requests or caching results.`,
-                    severity: 'warning',
+                    title: title,
+                    description: description,
+                    severity: hasCache ? 'info' : 'warning',
                     location: {
                         fileUri: fileUri,
                         startLine: node.loc.start.line,
@@ -122,7 +142,7 @@ export class LoopDetector implements OptimizationDetector {
                         endLine: node.loc.end.line,
                         endColumn: node.loc.end.column
                     },
-                    costImpact: 'High'
+                    costImpact: hasCache ? 'Low' : 'High'
                 });
             }
         }
@@ -135,7 +155,7 @@ export class LoopDetector implements OptimizationDetector {
         const suggestions: OptimizationSuggestion[] = [];
         const lines = content.split('\n');
         
-        let loopIndentLevels: number[] = []; // Stack of active loop indentation levels
+        let loopIndentLevels: { indent: number, startLine: number }[] = []; 
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -144,29 +164,42 @@ export class LoopDetector implements OptimizationDetector {
 
             const indent = line.search(/\S/);
             
-            // Manage loop stack based on indentation
-            // Pop loops that have ended (indentation went back or equal)
-            // Python: strictly greater indentation means inside.
-            loopIndentLevels = loopIndentLevels.filter(level => level < indent);
+            // Manage loop stack
+            loopIndentLevels = loopIndentLevels.filter(level => level.indent < indent);
 
             // Check if this line starts a loop
             if (trim.startsWith('for ') || trim.startsWith('while ')) {
-                loopIndentLevels.push(indent);
+                loopIndentLevels.push({ indent, startLine: i });
             }
 
             // If we are deep inside a loop
             if (loopIndentLevels.length > 0) {
-                const insideIndent = loopIndentLevels[loopIndentLevels.length - 1];
-                if (indent > insideIndent) {
+                const currentLoop = loopIndentLevels[loopIndentLevels.length - 1];
+                if (indent > currentLoop.indent) {
                      // Check for costly calls
                     const match = this.costPatterns.some(pattern => trim.toLowerCase().includes(pattern.toLowerCase()));
                     
                     if (match && !trim.startsWith('for ') && !trim.startsWith('while ')) {
+                         // Naive check for cache in the "surrounding lines" (heuristic: look back a few lines or check if file has redis)
+                         // Since we stream read lines, checking "loop body" is hard without full AST. 
+                         // Check for cache keywords in THIS line or variable names
+                         const hasCache = this.cachePatterns.some(pattern => trim.toLowerCase().includes(pattern));
+
+                         let description = `Detected costly operation inside a loop (Python). '${trim}'`;
+                         let title = 'Costly Operation in Loop';
+
+                         if (hasCache) {
+                             description += ` Verify caching logic.`;
+                             title = 'Verify Cache Effectiveness';
+                         } else {
+                             description += ` Consider Redis/Memcached or Batching.`;
+                         }
+
                          suggestions.push({
                             id: `loop-cost-py-${i + 1}`,
-                            title: 'Costly Operation in Loop',
-                            description: `Detected costly operation inside a loop (Python). '${trim}'`,
-                            severity: 'warning',
+                            title: title,
+                            description: description,
+                            severity: hasCache ? 'info' : 'warning',
                             location: {
                                 fileUri: fileUri,
                                 startLine: i + 1,
@@ -174,7 +207,7 @@ export class LoopDetector implements OptimizationDetector {
                                 endLine: i + 1,
                                 endColumn: line.length
                             },
-                            costImpact: 'High'
+                            costImpact: hasCache ? 'Low' : 'High'
                         });
                     }
                 }
