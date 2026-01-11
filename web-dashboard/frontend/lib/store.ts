@@ -278,6 +278,13 @@ export const useArchitectureStore = create<ArchitectureStore>()(
                     projectName: "Untitled Project",
                     chatMessages: [],  // Clear chat conversation
                     sessionId: undefined,  // Reset session
+                    scope: {  // Reset scope to default values
+                        users: 1000,
+                        trafficLevel: 2,
+                        dataVolumeGB: 10,
+                        regions: 1,
+                        availability: 99.9,
+                    },
                 });
                 get().recalculateCosts();
             },
