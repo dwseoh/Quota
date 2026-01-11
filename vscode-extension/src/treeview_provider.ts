@@ -82,10 +82,12 @@ export class cost_tree_item extends vscode.TreeItem {
         }
         this.description = optimization_data?.costImpact ? `${optimization_data.costImpact} Impact` : '';
         this.command = {
-            command: 'cost-tracker.showSuggestionDetails',
-            title: 'Show Details',
+            command: 'cost-tracker.jumpToSuggestion',
+            title: 'Jump to Code',
             arguments: [optimization_data]
         };
+        // Context menu to show details if needed
+        this.tooltip = `${optimization_data?.title}\n${optimization_data?.description}`;
         break;
     }
     
@@ -380,6 +382,34 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
           .sort(([, costA], [, costB]) => costB - costA)
           .slice(0, 5) // Top 5
           .map(([path, cost]) => ({ path, cost }));
+          
+      // 3. Sort Suggestions by Impact
+      const severityWeight = {
+          'critical': 5,
+          'warning': 4,
+          'info': 1
+      };
+      
+      const impactWeight = {
+          'High': 3,
+          'Medium': 2,
+          'Low': 1
+      };
+      
+      this.suggestions.sort((a, b) => {
+          // Primary sort: Severity (Critical > Warning > Info)
+          // Note: OptimizationSuggestion type uses 'severity' field (string)
+          const sevA = severityWeight[a.severity as keyof typeof severityWeight] || 0;
+          const sevB = severityWeight[b.severity as keyof typeof severityWeight] || 0;
+          
+          if (sevA !== sevB) return sevB - sevA;
+          
+          // Secondary sort: Impact (High > Med > Low)
+          const impA = impactWeight[a.costImpact as keyof typeof impactWeight] || 0;
+          const impB = impactWeight[b.costImpact as keyof typeof impactWeight] || 0;
+          
+          return impB - impA;
+      });
   }
 
   update_calls(calls: llm_call[]): void {

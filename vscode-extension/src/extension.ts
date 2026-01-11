@@ -201,7 +201,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (monthlyCost >= budget * 0.8) {
       // Prevent spamming: using VS Code's built-in suppression for identical messages isn't always enough if params change slightly
       // For MVP, we'll just show it. VS Code handles duplicate messages well.
-      vscode.window.showWarningMessage(`Budget Alert: You've reached 80% of your $${budget} monthly budget!`);
+      vscode.window.showWarningMessage(`Budget Alert: You've reached over 80% of your $${budget} monthly budget!`);
     }
   };
 
@@ -403,6 +403,38 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(jump_to_call_cmd);
+
+  // command to jump to optimization suggestion
+  const jump_to_suggestion_cmd = vscode.commands.registerCommand(
+      'cost-tracker.jumpToSuggestion',
+      async (suggestion: OptimizationSuggestion) => {
+          if (!suggestion || !suggestion.location || !suggestion.location.fileUri) {
+              vscode.window.showWarningMessage('No location data available for this suggestion');
+              return;
+          }
+
+          try {
+              const rawPath = suggestion.location.fileUri;
+              const uri = rawPath.startsWith('file:') ? vscode.Uri.parse(rawPath) : vscode.Uri.file(rawPath);
+                  
+              const document = await vscode.workspace.openTextDocument(uri);
+              const editor = await vscode.window.showTextDocument(document);
+
+              // 0-indexed conversion
+              const startLine = Math.max(0, suggestion.location.startLine - 1);
+              const startChar = Math.max(0, suggestion.location.startColumn - 1);
+              const endLine = Math.max(0, suggestion.location.endLine - 1);
+              const endChar = Math.max(0, suggestion.location.endColumn - 1);
+
+              const range = new vscode.Range(startLine, startChar, endLine, endChar);
+              editor.selection = new vscode.Selection(startLine, startChar, startLine, startChar);
+              editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+          } catch (error) {
+              vscode.window.showErrorMessage(`Failed to jump to suggestion: ${error}`);
+          }
+      }
+  );
+  context.subscriptions.push(jump_to_suggestion_cmd);
 
   // --- document listeners ---
 
