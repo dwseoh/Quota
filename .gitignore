@@ -81,6 +81,10 @@ temp/
 *.sqlite
 *.sqlite3
 
+# --- vector database / embeddings ---
+faiss_index/
+*.faiss
+
 # --- misc ---
 .cache/
 .parcel-cache/

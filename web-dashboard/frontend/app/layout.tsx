@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Architecture Sandbox | Delta",
+  title: "Quota | Home",
   description: "Design, estimate, and optimize your software architecture with real-time cost estimates",
 };
 
