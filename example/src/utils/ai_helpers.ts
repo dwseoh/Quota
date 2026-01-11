@@ -21,7 +21,6 @@ export const aiHelpers = {
     },
 
     async extractKeywords(text: string) {
-        // Legacy model usage
         return await openai.completions.create({
             model: 'text-davinci-002',
             prompt: `Keywords in: ${text}`,

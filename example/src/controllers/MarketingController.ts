@@ -41,7 +41,7 @@ export class MarketingController {
     async generateCreative() {
         return await openai.images.generate({
             model: 'dall-e-3',
-            prompt: "A futuristic fintech dashboard",
+            prompt: "A futuristic fintech dashboard. High detail, vibrant colors. show data analytics and graphs. Make sure it looks professional and sleek. Emphasize the important data points, and show the trend in the next 10 years. The dashboard should be split into multiple sections, each highlighting different financial metrics.",
             size: "1024x1024",
             quality: "hd",
             n: 1

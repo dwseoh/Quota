@@ -192,7 +192,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
  * @param provider - provider name
  * @returns model name
  */
-function extractModelFromCode(code: string, provider: string): string {
+export function extractModelFromCode(code: string, provider: string): string {
   // Look for model parameter
   const modelMatch = code.match(/model\s*[:=]\s*["']([^"']+)["']/);
   if (modelMatch) {
@@ -211,7 +211,7 @@ function extractModelFromCode(code: string, provider: string): string {
  * @param code - code body
  * @returns prompt text
  */
-function extractPromptFromCode(code: string): string {
+export function extractPromptFromCode(code: string): string {
   // Look for content or messages
   const contentMatch = code.match(/content\s*[:=]\s*["']([^"']+)["']/);
   if (contentMatch) {

@@ -6,7 +6,6 @@ on:
 
 jobs:
   build:
-    # Flaw: Using massive runner for simple build
     runs-on: ubuntu-latest-xlarge
 
     steps:

@@ -7,7 +7,8 @@ import * as vscode from 'vscode';
 import { cost_codelens_provider } from './codelens_provider';
 import { cost_tree_provider } from './treeview_provider';
 import { llm_call } from './types';
-import { initializeParser, indexWorkspace, getCachedGraph } from './parser';
+import { initializeParser, indexWorkspace, getCachedGraph, extractModelFromCode, extractPromptFromCode } from './parser';
+import { calculate_cost, estimate_tokens } from './cost_calculator';
 import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
 import { PatternDetector } from './optimization/detectors/pattern_detector';
@@ -43,13 +44,11 @@ export function activate(context: vscode.ExtensionContext) {
     for (const unit of graph.units) {
       const classification = graph.classifications[unit.id];
       
-      console.log(`🔍 Unit: ${unit.name} | Classification: ${classification ? `${classification.role}/${classification.category}/${classification.provider}` : 'none'}`);
-      
       if (classification && classification.role === 'consumer' && classification.category === 'llm') {
-        const model = extractModelFromClassification(unit.body, classification.provider);
-        const promptText = extractPromptFromUnit(unit.body);
-        const tokens = estimateTokens(promptText);
-        const cost = calculateCost(model, tokens);
+        const model = extractModelFromCode(unit.body, classification.provider);
+        const promptText = extractPromptFromCode(unit.body);
+        const tokens = estimate_tokens(promptText);
+        const cost = calculate_cost(model, tokens);
         
         allCalls.push({
           line: unit.location.startLine, // Keep 1-indexed for display
@@ -135,48 +134,9 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  // Helper functions (simplified versions from parser)
-  const extractModelFromClassification = (code: string, provider: string): string => {
-    const modelMatch = code.match(/model\s*[:=]\s*["']([^"']+)["']/);
-    if (modelMatch) return modelMatch[1];
-    if (provider === 'openai') return 'gpt-4';
-    if (provider === 'anthropic') return 'claude-sonnet-4';
-    return 'unknown';
-  };
-
-  const extractPromptFromUnit = (code: string): string => {
-    const contentMatch = code.match(/content\s*[:=]\s*["']([^"']+)["']/);
-    if (contentMatch) return contentMatch[1];
-    const messagesMatch = code.match(/messages\s*[:=]\s*\[(.*?)\]/s);
-    if (messagesMatch) return messagesMatch[1].substring(0, 200);
-    return code.substring(0, 200);
-  };
-
-  const estimateTokens = (text: string): number => {
-    return Math.ceil(text.length / 4);
-  };
-
   // status bar
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   context.subscriptions.push(statusBarItem);
-
-  const calculateCost = (model: string, tokens: number): number => {
-    // Normalize model name (remove date suffixes)
-    let normalizedModel = model;
-    if (model.includes('claude-sonnet')) normalizedModel = 'claude-sonnet-4';
-    else if (model.includes('claude-haiku')) normalizedModel = 'claude-haiku';
-    else if (model.includes('gpt-4')) normalizedModel = 'gpt-4';
-    else if (model.includes('gpt-3.5')) normalizedModel = 'gpt-3.5-turbo';
-    
-    const pricing: Record<string, number> = {
-      'gpt-4': 0.03,
-      'gpt-3.5-turbo': 0.0005,
-      'claude-sonnet-4': 0.003,
-      'claude-haiku': 0.00025
-    };
-    const rate = pricing[normalizedModel] || 0.01;
-    return (tokens / 1000) * rate;
-  };
 
   const updateStatusBar = (totalCost: number, userCount: number) => {
     const config = vscode.workspace.getConfiguration('cost-tracker');

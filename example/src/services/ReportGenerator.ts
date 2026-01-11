@@ -12,8 +12,7 @@ export class ReportGenerator {
 
         let totalVolume = 0;
         const merchantStats: any = {};
-
-        // JavaScript processing instead of SQL aggregation
+        
         for (const row of allData.rows) {
             totalVolume += row.amount;
             
@@ -43,7 +42,7 @@ export class ReportGenerator {
         const anthropic = { messages: { create: (args: any) => {} } };
 
         await openai.chat.completions.create({
-            model: "gpt-4-32k",
+            model: "gpt-4o",
             messages: [{
                 role: "user",
                 content: "Here is the entire 500-page transaction history. Please analyze every single line for fraud patterns..." + "data".repeat(5000)
