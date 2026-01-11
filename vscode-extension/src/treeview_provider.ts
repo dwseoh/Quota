@@ -10,7 +10,12 @@ import { llm_call, CodespaceGraph } from './types';
 /**
  * tree item types for different sections
  */
-type tree_item_type = 'root' | 'summary' | 'calls_section' | 'call_item' | 'simulator_section' | 'simulator_item' | 'action_button' | 'project_section' | 'file_item';
+import { OptimizationSuggestion } from './optimization/types';
+
+/**
+ * tree item types for different sections
+ */
+type tree_item_type = 'root' | 'summary' | 'calls_section' | 'call_item' | 'simulator_section' | 'simulator_item' | 'action_button' | 'project_section' | 'file_item' | 'optimization_section' | 'optimization_item';
 
 export class cost_tree_item extends vscode.TreeItem {
   constructor(
@@ -18,20 +23,22 @@ export class cost_tree_item extends vscode.TreeItem {
     public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
     public readonly item_type: tree_item_type = 'root',
     public readonly call_data?: llm_call,
-    public readonly file_path?: string
+    public readonly file_path?: string,
+    public readonly optimization_data?: OptimizationSuggestion
   ) {
     super(label, collapsibleState);
     
     // set icons based on item type
     switch (item_type) {
       case 'summary':
-        this.iconPath = new vscode.ThemeIcon('symbol-number');
+        this.iconPath = new vscode.ThemeIcon('symbol-number', new vscode.ThemeColor('charts.green'));
         break;
       case 'calls_section':
         this.iconPath = new vscode.ThemeIcon('list-unordered');
         break;
       case 'call_item':
-        this.iconPath = new vscode.ThemeIcon('symbol-method');
+        // Use custom 'normal' color (Blue)
+        this.iconPath = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('quota.icon.normal'));
         this.description = call_data ? `line ${call_data.line}` : '';
         // make call items clickable to jump to code location
         this.command = {
@@ -44,7 +51,11 @@ export class cost_tree_item extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('graph');
         break;
       case 'simulator_item':
-        this.iconPath = new vscode.ThemeIcon('dashboard');
+        if (label.includes('daily') || label.includes('monthly') || label.includes('yearly')) {
+             this.iconPath = new vscode.ThemeIcon('calendar');
+        } else {
+             this.iconPath = new vscode.ThemeIcon('dashboard');
+        }
         break;
       case 'action_button':
         this.iconPath = new vscode.ThemeIcon('edit');
@@ -64,6 +75,28 @@ export class cost_tree_item extends vscode.TreeItem {
              arguments: [vscode.Uri.file(file_path || '')]
         };
         break;
+      case 'optimization_section':
+        this.iconPath = new vscode.ThemeIcon('lightbulb');
+        break;
+      case 'optimization_item':
+        const impact = optimization_data?.costImpact;
+        // Use custom colors
+        if (impact === 'Critical') {
+            this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('quota.icon.critical'));
+        } else if (impact === 'High') {
+            this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('quota.icon.high'));
+        } else {
+            this.iconPath = new vscode.ThemeIcon('info', new vscode.ThemeColor('quota.icon.normal'));
+        }
+        this.description = optimization_data?.costImpact ? `${optimization_data.costImpact} Impact` : '';
+        this.command = {
+            command: 'cost-tracker.jumpToSuggestion',
+            title: 'Jump to Code',
+            arguments: [optimization_data]
+        };
+        // Context menu to show details if needed
+        this.tooltip = `${optimization_data?.title}\n${optimization_data?.description}`;
+        break;
     }
     
     // add context value for right-click menus
@@ -78,6 +111,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     this._onDidChangeTreeData.event;
 
   private detected_calls: llm_call[] = [];
+  private suggestions: OptimizationSuggestion[] = [];
   private project_graph: CodespaceGraph | null = null;
   private user_count: number = 100;
   private use_mock_data: boolean = true; // for testing before parser is ready
@@ -93,20 +127,31 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
    * get children for tree view
    */
   getChildren(element?: cost_tree_item): Thenable<cost_tree_item[]> {
-    // if no element, return root level items
-    if (!element) {
-      return Promise.resolve(this.get_root_items());
-    }
-    
-    // handle children for expandable sections
-    switch (element.item_type) {
-      case 'calls_section':
-        return Promise.resolve(this.get_call_items());
-      case 'simulator_section':
-        return Promise.resolve(this.get_simulator_items());
-      case 'project_section':
-        return Promise.resolve(this.get_project_items());
-      default:
+    try {
+        // if no element, return root level items
+        if (!element) {
+          // console.log('🌲 getChildren(root)');
+          return Promise.resolve(this.get_root_items());
+        }
+        
+        // console.log(`🌲 getChildren(${element.label}, type=${element.item_type})`);
+
+        // handle children for expandable sections
+        switch (element.item_type) {
+          case 'calls_section':
+            return Promise.resolve(this.get_call_items());
+          case 'simulator_section':
+            return Promise.resolve(this.get_simulator_items());
+          case 'project_section':
+            return Promise.resolve(this.get_project_items());
+          case 'optimization_section':
+            return Promise.resolve(this.get_optimization_items());
+          default:
+            return Promise.resolve([]);
+        }
+    } catch (error) {
+        console.error('🔥 Error in getChildren:', error);
+        vscode.window.showErrorMessage(`Tree Error: ${error}`);
         return Promise.resolve([]);
     }
   }
@@ -119,43 +164,44 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     
     // use mock data if parser isn't ready yet
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
-    const total_cost = calls.reduce((sum, call) => sum + call.estimated_cost, 0);
+    const total_cost = this.use_mock_data 
+        ? calls.reduce((sum, call) => sum + call.estimated_cost, 0) 
+        : this.total_cost_cache;
     const call_count = calls.length;
     
     // summary section
     items.push(new cost_tree_item(
-      `💰 Total: $${total_cost.toFixed(4)} (${call_count} call${call_count !== 1 ? 's' : ''})`,
+      `💰 total (per run): $${total_cost.toFixed(4)}`,
       vscode.TreeItemCollapsibleState.None,
       'summary'
     ));
     
     // calls section (collapsible)
-    if (call_count > 0) {
-      items.push(new cost_tree_item(
+    items.push(new cost_tree_item(
         `API Calls (${call_count})`,
-        vscode.TreeItemCollapsibleState.Expanded,
+        call_count > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
         'calls_section'
-      ));
-    } else {
-      items.push(new cost_tree_item(
-        'No API calls detected',
-        vscode.TreeItemCollapsibleState.None,
-        'calls_section'
-      ));
-    }
+    ));
+
+    // Optimization & Infra Section
+    const optCount = this.suggestions.length;
+    items.push(new cost_tree_item(
+        `Optimization & Infra (${optCount})`,
+        optCount > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
+        'optimization_section'
+    ));
 
     // Project Analysis Section
-    // Always show it to verify UI, even if data is missing
     items.push(new cost_tree_item(
         'Project Analysis',
-        vscode.TreeItemCollapsibleState.Expanded,
+        vscode.TreeItemCollapsibleState.Collapsed,
         'project_section'
     ));
     
     // scale simulator section (collapsible)
     items.push(new cost_tree_item(
       'Scale Simulator',
-      vscode.TreeItemCollapsibleState.Expanded,
+      vscode.TreeItemCollapsibleState.Collapsed,
       'simulator_section'
     ));
     
@@ -169,13 +215,30 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
     
     return calls.map(call => {
-      const label = `${call.provider} • ${call.model}: $${call.estimated_cost.toFixed(4)}`;
+      const label = `${call.provider} • ${call.model}: $${call.estimated_cost.toFixed(4)}`.toLowerCase();
       return new cost_tree_item(
         label,
         vscode.TreeItemCollapsibleState.None,
         'call_item',
         call
       );
+    });
+  }
+
+  private get_optimization_items(): cost_tree_item[] {
+    if (this.suggestions.length === 0) {
+        return [new cost_tree_item('no optimizations found', vscode.TreeItemCollapsibleState.None, 'optimization_item')];
+    }
+
+    return this.suggestions.map(suggestion => {
+        return new cost_tree_item(
+            suggestion.title.toLowerCase(),
+            vscode.TreeItemCollapsibleState.None,
+            'optimization_item',
+            undefined,
+            undefined,
+            suggestion
+        );
     });
   }
 
@@ -189,7 +252,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     
     // current settings
     items.push(new cost_tree_item(
-      `Users/day: ${this.user_count}`,
+      `users/day: ${this.user_count}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
@@ -200,26 +263,26 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     const yearly_cost = daily_cost * 365;
     
     items.push(new cost_tree_item(
-      `Daily: $${daily_cost.toFixed(2)}`,
+      `daily projected: $${daily_cost.toFixed(2)}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
-    
+
     items.push(new cost_tree_item(
-      `Monthly: $${monthly_cost.toFixed(2)}`,
+      `monthly projected: $${monthly_cost.toFixed(2)}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
-    
+
     items.push(new cost_tree_item(
-      `Yearly: $${yearly_cost.toFixed(2)}`,
+      `yearly projected: $${yearly_cost.toFixed(2)}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
     
     // action button to update user count
     items.push(new cost_tree_item(
-      'Update User Count',
+      'update user count',
       vscode.TreeItemCollapsibleState.None,
       'action_button'
     ));
@@ -238,42 +301,30 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
               'summary'
           )]; 
       }
-
-      const items: cost_tree_item[] = [];
-      const fileCosts = new Map<string, number>();
-
-      // Aggregate costs per file
-      // In a real implementation we would iterate through all units and classifications
-      // For now, we'll just look at the units in the graph that are classified as paid APIs
       
-      for (const unit of this.project_graph.units) {
-          const classification = this.project_graph.classifications[unit.id];
-          if (classification && classification.role === 'consumer' && classification.category === 'llm') {
-              // Quick cost estimation (simplistic for demo)
-              const cost = 0.001; // Placeholder cost per call
-              const filePath = unit.location.fileUri;
-              fileCosts.set(filePath, (fileCosts.get(filePath) || 0) + cost);
-          }
-      }
-
-      // Sort files by cost
-      const sortedFiles = Array.from(fileCosts.entries())
-          .sort(([, costA], [, costB]) => costB - costA)
-          .slice(0, 5); // Top 5
+      const items: cost_tree_item[] = [];
 
       items.push(new cost_tree_item(
-          `Files Indexed: ${this.project_graph.files.length}`,
+          `files indexed: ${this.project_graph.files.length}`,
           vscode.TreeItemCollapsibleState.None,
           'summary'
       ));
 
-      for (const [filePath, cost] of sortedFiles) {
+      if (this.top_expensive_files.length === 0) {
+         items.push(new cost_tree_item(
+             'no cost data yet',
+             vscode.TreeItemCollapsibleState.None,
+             'summary'
+         ));
+      }
+
+      for (const file of this.top_expensive_files) {
           items.push(new cost_tree_item(
-              `${path.basename(filePath)} ($${cost.toFixed(3)})`,
+              `${path.basename(file.path)} ($${file.cost.toFixed(3)})`,
               vscode.TreeItemCollapsibleState.None,
               'file_item',
               undefined,
-              filePath
+              file.path
           ));
       }
 
@@ -312,27 +363,95 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     ];
   }
 
-  /**
-   * update detected calls
-   */
-  update_calls(calls: llm_call[]): void {
-    this.detected_calls = calls;
-    this.use_mock_data = false; // switch to real data
-    this.refresh();
-  }
+  // Cached display data
+  private top_expensive_files: { path: string; cost: number }[] = [];
+  private total_cost_cache: number = 0;
 
   /**
-   * update project graph
+   * Batch update all data to prevent multiple refreshes
    */
-  update_project(graph: CodespaceGraph): void {
-      // console.log(`🌲 TreeProvider: Received graph with ${graph.files.length} files and ${graph.units.length} units`);
+  update_all_data(calls: llm_call[], graph: CodespaceGraph, suggestions: OptimizationSuggestion[]) {
+      this.detected_calls = calls;
+      this.use_mock_data = false;
       this.project_graph = graph;
+      this.suggestions = suggestions;
+      
+      this.recalculate_stats();
       this.refresh();
   }
 
   /**
-   * update user count for simulation
+   * Pre-calculate expensive metrics
    */
+  private recalculate_stats() {
+      // 1. Total Cost
+      this.total_cost_cache = this.detected_calls.reduce((sum, call) => sum + call.estimated_cost, 0);
+
+      // 2. Top Files (previously in get_project_items)
+      if (!this.project_graph) return;
+      
+      const fileCosts = new Map<string, number>();
+      // Use the pre-calculated calls list instead of re-traversing the graph if possible
+      // Or if we want graph-based breadth:
+      for (const call of this.detected_calls) {
+          if (call.file_path) {
+             fileCosts.set(call.file_path, (fileCosts.get(call.file_path) || 0) + call.estimated_cost);
+          }
+      }
+
+      this.top_expensive_files = Array.from(fileCosts.entries())
+          .sort(([, costA], [, costB]) => costB - costA)
+          .slice(0, 5) // Top 5
+          .map(([path, cost]) => ({ path, cost }));
+          
+      // 3. Sort Suggestions by Impact
+      const severityWeight = {
+          'critical': 5,
+          'warning': 4,
+          'info': 1
+      };
+      
+      const impactWeight = {
+          'Critical': 4,
+          'High': 3,
+          'Medium': 2,
+          'Low': 1
+      };
+      
+      this.suggestions.sort((a, b) => {
+          // Primary sort: Severity (Critical > Warning > Info)
+          // Note: OptimizationSuggestion type uses 'severity' field (string)
+          const sevA = severityWeight[a.severity as keyof typeof severityWeight] || 0;
+          const sevB = severityWeight[b.severity as keyof typeof severityWeight] || 0;
+          
+          if (sevA !== sevB) return sevB - sevA;
+          
+          // Secondary sort: Impact (Critical > High > Med > Low)
+          const impA = impactWeight[a.costImpact as keyof typeof impactWeight] || 0;
+          const impB = impactWeight[b.costImpact as keyof typeof impactWeight] || 0;
+          
+          return impB - impA;
+      });
+  }
+
+  update_calls(calls: llm_call[]): void {
+    this.detected_calls = calls;
+    this.use_mock_data = false;
+    this.recalculate_stats();
+    this.refresh();
+  }
+
+  update_suggestions(suggestions: OptimizationSuggestion[]) {
+      this.suggestions = suggestions;
+      this.refresh();
+  }
+
+  update_project(graph: CodespaceGraph): void {
+      this.project_graph = graph;
+      this.recalculate_stats();
+      this.refresh();
+  }
+
   update_user_count(count: number): void {
     this.user_count = count;
     this.refresh();
