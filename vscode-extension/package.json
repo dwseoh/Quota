@@ -1,6 +1,6 @@
 {
   "name": "cost-tracker",
-  "displayName": "Cost Tracker",
+  "displayName": "Quota",
   "description": "Track and optimize costs in your codebase",
   "version": "0.0.1",
 
@@ -45,8 +45,8 @@
       "activitybar": [
         {
           "id": "cost-tracker-sidebar",
-          "title": "Cost Tracker",
-          "icon": "$(graph)"
+          "title": "Quota",
+          "icon": "media/logo.svg"
         }
       ]
     },
@@ -54,8 +54,8 @@
       "cost-tracker-sidebar": [
         {
           "id": "cost-tracker-panel",
-          "name": "Cost Tracker",
-          "icon": "$(graph)"
+          "name": "Quota",
+          "icon": "media/logo.svg"
         }
       ]
     },
