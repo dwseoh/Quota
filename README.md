@@ -1,4 +1,4 @@
-# delta - cost tracker
+Quota-
 
 vscode extension + web dashboard for tracking and optimizing costs in your codebase
 
