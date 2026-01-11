@@ -14,8 +14,6 @@
   /* teal-green */
   --primary-hover: #0f766e;
   --secondary: #2dd4bf;
-  --secondary-light: #5eead4;
-  /* lighter teal for chat bubbles */
 
   --accent: #ec4899;
   --success: #28ad4e;
@@ -39,6 +37,10 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+.hover {
+  cursor: pointer;
 }
 
 * {

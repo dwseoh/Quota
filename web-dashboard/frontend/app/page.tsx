@@ -76,7 +76,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-lg font-semibold text-[var(--foreground)]">Visual Design</h3>
                 <p className="text-sm text-[var(--foreground-secondary)]">
-                  Drag and drop components to build your architecture. No code required.
+                  Drag and drop components to build your architecture. <br></br>No code required.
                 </p>
               </div>
 
@@ -86,7 +86,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-lg font-semibold text-[var(--foreground)]">Cost Estimation</h3>
                 <p className="text-sm text-[var(--foreground-secondary)]">
-                  Get instant monthly cost breakdowns based on your scale and traffic.
+                  Get instant monthly cost breakdowns based on your<br></br>scale and traffic.
                 </p>
               </div>
 
@@ -96,7 +96,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-lg font-semibold text-[var(--foreground)]">Share & Explore</h3>
                 <p className="text-sm text-[var(--foreground-secondary)]">
-                  Publish your designs and discover architectures from the community.
+                  Publish your designs<br></br> and discover architectures<br></br> from the community.
                 </p>
               </div>
             </div>
@@ -113,9 +113,9 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-lg bg-[var(--success)]/20 flex items-center justify-center">
                   <Activity className="w-6 h-6 text-[var(--success)]" />
                 </div>
-                <h3 className="text-lg font-semibold text-[var(--foreground)]">Visualize & Simulate Cost Inline</h3>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Visualize & Simulate<br></br>Cost Inline</h3>
                 <p className="text-sm text-[var(--foreground-secondary)]">
-                  See cost estimates directly in your code as you build.
+                  See cost estimates directly in<br></br>your code as you build.
                 </p>
               </div>
 
@@ -133,7 +133,7 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center">
                   <ListOrdered className="w-6 h-6 text-[var(--primary)]" />
                 </div>
-                <h3 className="text-lg font-semibold text-[var(--foreground)]">Prioritize What to Fix First</h3>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">Prioritize What<br></br> to Fix First</h3>
                 <p className="text-sm text-[var(--foreground-secondary)]">
                   Get actionable insights on which issues to tackle first.
                 </p>

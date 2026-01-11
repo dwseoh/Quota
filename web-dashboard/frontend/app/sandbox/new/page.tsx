@@ -156,7 +156,7 @@ export default function Home() {
           <div className="h-6 w-px bg-[var(--border)]" />
           <button
             onClick={() => setIsPublishModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 text-white text-sm font-semibold transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--accent)]/90 hover:bg-[var(--accent)]/70 text-white text-sm font-semibold transition-colors"
           >
             <Share2 className="w-4 h-4" />
             Publish
