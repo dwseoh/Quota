@@ -53,6 +53,16 @@ export class cost_tree_item extends vscode.TreeItem {
       case 'simulator_item':
         if (label.includes('daily') || label.includes('monthly') || label.includes('yearly')) {
              this.iconPath = new vscode.ThemeIcon('calendar');
+        } else if (label.toLowerCase().includes('bankrupt') || label.toLowerCase().includes('budget')) {
+             if (label.includes('🔥') || label.includes('💸')) {
+                 this.iconPath = new vscode.ThemeIcon('clock', new vscode.ThemeColor('charts.red'));
+             } else if (label.includes('⚠️')) {
+                 this.iconPath = new vscode.ThemeIcon('clock', new vscode.ThemeColor('charts.yellow'));
+             } else if (label.includes('✅')) {
+                 this.iconPath = new vscode.ThemeIcon('clock', new vscode.ThemeColor('charts.green'));
+             } else {
+                 this.iconPath = new vscode.ThemeIcon('clock');
+             }
         } else {
              this.iconPath = new vscode.ThemeIcon('dashboard');
         }
@@ -278,6 +288,41 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       `yearly projected: $${yearly_cost.toFixed(2)}`,
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
+    ));
+
+    // Bankruptcy Countdown
+    const config = vscode.workspace.getConfiguration('cost-tracker');
+    const budget = config.get<number>('monthlyBudget') || 500;
+    
+    let bankruptcyText = '';
+    let bankruptcyIcon = '';
+    
+    if (daily_cost === 0) {
+        bankruptcyText = 'Time to Bankruptcy: ∞ (Safe)';
+        bankruptcyIcon = 'shield';
+    } else {
+        const days_remaining = budget / daily_cost;
+        const days_rounded = Math.floor(days_remaining);
+        
+        if (days_rounded < 1) {
+             bankruptcyText = `budget drained in < 1 day!`;
+             bankruptcyIcon = 'alert';
+        } else if (days_rounded < 7) {
+            bankruptcyText = `budget drains in: ${days_rounded} days`;
+            bankruptcyIcon = 'flame';
+        } else if (days_rounded < 30) {
+            bankruptcyText = `budget drains in: ${days_rounded} days`;
+            bankruptcyIcon = 'warning';
+        } else {
+            bankruptcyText = `budget safe (>30 days)`;
+            bankruptcyIcon = 'check';
+        }
+    }
+
+    items.push(new cost_tree_item(
+        bankruptcyText,
+        vscode.TreeItemCollapsibleState.None,
+        'simulator_item'
     ));
     
     // action button to update user count
