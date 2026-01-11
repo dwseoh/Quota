@@ -8,6 +8,10 @@ import { cost_codelens_provider } from './codelens_provider';
 import { cost_tree_provider } from './treeview_provider';
 import { llm_call } from './types';
 import { initializeParser, indexWorkspace, getCachedGraph } from './parser';
+import { OptimizationManager } from './optimization/manager';
+import { LoopDetector } from './optimization/detectors/loop_detector';
+import { PatternDetector } from './optimization/detectors/pattern_detector';
+import { OptimizationSuggestion } from './optimization/types';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('cost-tracker extension is now active');
@@ -181,6 +185,15 @@ export function activate(context: vscode.ExtensionContext) {
   initializeParser(workspaceRoot).then(() => {
     console.log('Parser system initialized');
 
+    // --- Optimization Manager Initialization ---
+    // Import dynamically or at top level. Assuming top level imports are added by user/formatter, 
+    // but here we rely on the file being valid TS.
+    // Note: ensure we import these at the top of file!
+    const optManager = OptimizationManager.getInstance();
+    optManager.registerDetector(new LoopDetector());
+    optManager.registerDetector(new PatternDetector());
+    console.log('✨ Optimization Manager initialized with detectors');
+
     // Run initial workspace indexing in background
     vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
@@ -213,6 +226,22 @@ export function activate(context: vscode.ExtensionContext) {
     console.error('Failed to initialize parser:', error);
     vscode.window.showErrorMessage(`Cost Tracker: Parser initialization failed - ${error}`);
   });
+
+  // --- Optimization Commands ---
+  const show_suggestion_cmd = vscode.commands.registerCommand(
+      'cost-tracker.showSuggestionDetails',
+      (suggestion: OptimizationSuggestion) => {
+          vscode.window.showInformationMessage(
+              `Suggestion: ${suggestion.title}\n\n${suggestion.description}\n\nImpact: ${suggestion.costImpact}`,
+              'Learn More'
+          ).then(selection => {
+              if (selection === 'Learn More') {
+                  // Could open a link in future
+              }
+          });
+      }
+  );
+  context.subscriptions.push(show_suggestion_cmd);
 
   // --- commands ---
 

@@ -7,6 +7,8 @@ import * as vscode from 'vscode';
 import { llm_call } from './types';
 import { parse_llm_calls } from './parser';
 
+import { OptimizationManager } from './optimization/manager';
+
 export class cost_codelens_provider implements vscode.CodeLensProvider {
   private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
   public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
@@ -14,37 +16,56 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
   /**
    * provide codelens for a document
    */
-  public provideCodeLenses(
-  document: vscode.TextDocument,
-  token: vscode.CancellationToken
-): vscode.CodeLens[] {
-  if (token.isCancellationRequested) return [];
+  public async provideCodeLenses(
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken
+  ): Promise<vscode.CodeLens[]> {
+    if (token.isCancellationRequested) return [];
 
-  // Person 1 likely expects TextDocument; if they switch to string later,
-  // this is the only line you’ll change.
-  const detected_calls = parse_llm_calls(document);
+    // 1. Existing functionality: Cost tracking
+    const detected_calls = parse_llm_calls(document);
+    const codelenses: vscode.CodeLens[] = [];
 
-  const codelenses: vscode.CodeLens[] = [];
+    for (const call of detected_calls) {
+      const lineIdx = Math.max(0, Math.min(document.lineCount - 1, call.line - 1));
+      const lineRange = document.lineAt(lineIdx).range;
+      const title = `💰 ~$${call.estimated_cost.toFixed(4)} • ${call.estimated_tokens} tok • ${call.provider}:${call.model}`;
 
-  for (const call of detected_calls) {
-    // llm_call.line is 1-based in your shared type (line: number)
-    const lineIdx = Math.max(0, Math.min(document.lineCount - 1, call.line - 1));
+      const command: vscode.Command = {
+        title,
+        command: "cost-tracker.showCostDetails",
+        arguments: [call]
+      };
 
-    const lineRange = document.lineAt(lineIdx).range;
+      codelenses.push(new vscode.CodeLens(lineRange, command));
+    }
 
-    const title = `💰 ~$${call.estimated_cost.toFixed(4)} • ${call.estimated_tokens} tok • ${call.provider}:${call.model}`;
+    // 2. New functionality: Optimization Suggestions
+    try {
+        const suggestions = await OptimizationManager.getInstance().analyze(document);
+        
+        for (const suggestion of suggestions) {
+            // Map location to range
+            const startPos = new vscode.Position(suggestion.location.startLine - 1, suggestion.location.startColumn);
+            const endPos = new vscode.Position(suggestion.location.endLine - 1, suggestion.location.endColumn);
+            const range = new vscode.Range(startPos, endPos);
 
-    const command: vscode.Command = {
-      title,
-      command: "cost-tracker.showCostDetails",
-      arguments: [call]
-    };
+            const icon = suggestion.severity === 'warning' ? '⚠️' : '💡';
+            
+            const command: vscode.Command = {
+                title: `${icon} Suggestion: ${suggestion.title}`,
+                command: 'cost-tracker.showSuggestionDetails',
+                arguments: [suggestion]
+            };
+            
+            codelenses.push(new vscode.CodeLens(range, command));
+        }
+    } catch (error) {
+        console.error('Error fetching optimization suggestions:', error);
+    }
 
-    codelenses.push(new vscode.CodeLens(lineRange, command));
+    return codelenses;
   }
-
-  return codelenses;
-}
 
 
   /**
