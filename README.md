@@ -16,6 +16,8 @@ Quota solves that. It allows developers to track and optimize resource costs lik
 
 By surfacing resource impact _before_ shipping, Quota prevents budget overruns and ensures efficient scaling.
 
+Watch the demo: https://youtu.be/SUyDS37U6A0
+
 ## Key Features
 
 ### VS Code Extension
