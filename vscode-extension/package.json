@@ -89,7 +89,36 @@
           "description": "Monthly budget limit in USD for cost alerts"
         }
       }
-    }
+    },
+    "colors": [
+      {
+        "id": "quota.icon.critical",
+        "description": "Color for critical impact items",
+        "defaults": {
+          "dark": "#AD46FF",
+          "light": "#8000FF",
+          "highContrast": "#FF00FF"
+        }
+      },
+      {
+        "id": "quota.icon.high",
+        "description": "Color for high impact items",
+        "defaults": {
+          "dark": "#FFD700",
+          "light": "#FFD700",
+          "highContrast": "#FFD700"
+        }
+      },
+      {
+        "id": "quota.icon.normal",
+        "description": "Color for normal/low impact items",
+        "defaults": {
+          "dark": "#00BFFF",
+          "light": "#007ACC",
+          "highContrast": "#0000FF"
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

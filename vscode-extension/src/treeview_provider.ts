@@ -31,13 +31,14 @@ export class cost_tree_item extends vscode.TreeItem {
     // set icons based on item type
     switch (item_type) {
       case 'summary':
-        this.iconPath = new vscode.ThemeIcon('symbol-number');
+        this.iconPath = new vscode.ThemeIcon('symbol-number', new vscode.ThemeColor('charts.green'));
         break;
       case 'calls_section':
         this.iconPath = new vscode.ThemeIcon('list-unordered');
         break;
       case 'call_item':
-        this.iconPath = new vscode.ThemeIcon('symbol-method');
+        // Use custom 'normal' color (Blue)
+        this.iconPath = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('quota.icon.normal'));
         this.description = call_data ? `line ${call_data.line}` : '';
         // make call items clickable to jump to code location
         this.command = {
@@ -50,7 +51,11 @@ export class cost_tree_item extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('graph');
         break;
       case 'simulator_item':
-        this.iconPath = new vscode.ThemeIcon('dashboard');
+        if (label.includes('daily') || label.includes('monthly') || label.includes('yearly')) {
+             this.iconPath = new vscode.ThemeIcon('calendar');
+        } else {
+             this.iconPath = new vscode.ThemeIcon('dashboard');
+        }
         break;
       case 'action_button':
         this.iconPath = new vscode.ThemeIcon('edit');
@@ -74,11 +79,14 @@ export class cost_tree_item extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('lightbulb');
         break;
       case 'optimization_item':
-        const severity = optimization_data?.severity;
-        if (severity === 'critical' || severity === 'warning') {
-            this.iconPath = new vscode.ThemeIcon('warning');
+        const impact = optimization_data?.costImpact;
+        // Use custom colors
+        if (impact === 'Critical') {
+            this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('quota.icon.critical'));
+        } else if (impact === 'High') {
+            this.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('quota.icon.high'));
         } else {
-            this.iconPath = new vscode.ThemeIcon('info');
+            this.iconPath = new vscode.ThemeIcon('info', new vscode.ThemeColor('quota.icon.normal'));
         }
         this.description = optimization_data?.costImpact ? `${optimization_data.costImpact} Impact` : '';
         this.command = {
@@ -404,6 +412,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       };
       
       const impactWeight = {
+          'Critical': 4,
           'High': 3,
           'Medium': 2,
           'Low': 1
@@ -417,7 +426,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
           
           if (sevA !== sevB) return sevB - sevA;
           
-          // Secondary sort: Impact (High > Med > Low)
+          // Secondary sort: Impact (Critical > High > Med > Low)
           const impA = impactWeight[a.costImpact as keyof typeof impactWeight] || 0;
           const impB = impactWeight[b.costImpact as keyof typeof impactWeight] || 0;
           
