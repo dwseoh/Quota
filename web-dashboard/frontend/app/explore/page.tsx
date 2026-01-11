@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Logo from "@/components/Logo";
@@ -18,7 +18,7 @@ interface Sandbox {
     views: number;
 }
 
-export default function ExplorePage() {
+function ExplorePageContent() {
     const searchParams = useSearchParams();
     const publishedId = searchParams.get("published");
 
@@ -135,5 +135,17 @@ export default function ExplorePage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function ExplorePage() {
+    return (
+        <Suspense fallback={
+            <div className="h-screen flex items-center justify-center bg-[var(--background)]">
+                <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
+            </div>
+        }>
+            <ExplorePageContent />
+        </Suspense>
     );
 }
