@@ -53,6 +53,16 @@ export class cost_tree_item extends vscode.TreeItem {
       case 'simulator_item':
         if (label.includes('daily') || label.includes('monthly') || label.includes('yearly')) {
              this.iconPath = new vscode.ThemeIcon('calendar');
+        } else if (label.toLowerCase().includes('bankrupt') || label.toLowerCase().includes('budget')) {
+             if (label.includes('🔥') || label.includes('💸')) {
+                 this.iconPath = new vscode.ThemeIcon('clock', new vscode.ThemeColor('charts.red'));
+             } else if (label.includes('⚠️')) {
+                 this.iconPath = new vscode.ThemeIcon('clock', new vscode.ThemeColor('charts.yellow'));
+             } else if (label.includes('✅')) {
+                 this.iconPath = new vscode.ThemeIcon('clock', new vscode.ThemeColor('charts.green'));
+             } else {
+                 this.iconPath = new vscode.ThemeIcon('clock');
+             }
         } else {
              this.iconPath = new vscode.ThemeIcon('dashboard');
         }
@@ -214,8 +224,12 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   private get_call_items(): cost_tree_item[] {
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
     
+    // Sort by cost (High -> Low)
+    calls.sort((a, b) => b.estimated_cost - a.estimated_cost);
+
     return calls.map(call => {
-      const label = `${call.provider} • ${call.model}: $${call.estimated_cost.toFixed(4)}`.toLowerCase();
+      // Simplified Format: Model • Cost
+      const label = `${call.model} • $${call.estimated_cost.toFixed(4)}`;
       return new cost_tree_item(
         label,
         vscode.TreeItemCollapsibleState.None,
@@ -279,6 +293,41 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       vscode.TreeItemCollapsibleState.None,
       'simulator_item'
     ));
+
+    // Bankruptcy Countdown
+    const config = vscode.workspace.getConfiguration('cost-tracker');
+    const budget = config.get<number>('monthlyBudget') || 500;
+    
+    let bankruptcyText = '';
+    let bankruptcyIcon = '';
+    
+    if (daily_cost === 0) {
+        bankruptcyText = 'Time to Bankruptcy: ∞ (Safe)';
+        bankruptcyIcon = 'shield';
+    } else {
+        const days_remaining = budget / daily_cost;
+        const days_rounded = Math.floor(days_remaining);
+        
+        if (days_rounded < 1) {
+             bankruptcyText = `budget drained in < 1 day!`;
+             bankruptcyIcon = 'alert';
+        } else if (days_rounded < 7) {
+            bankruptcyText = `budget drains in: ${days_rounded} days`;
+            bankruptcyIcon = 'flame';
+        } else if (days_rounded < 30) {
+            bankruptcyText = `budget drains in: ${days_rounded} days`;
+            bankruptcyIcon = 'warning';
+        } else {
+            bankruptcyText = `budget safe (>30 days)`;
+            bankruptcyIcon = 'check';
+        }
+    }
+
+    items.push(new cost_tree_item(
+        bankruptcyText,
+        vscode.TreeItemCollapsibleState.None,
+        'simulator_item'
+    ));
     
     // action button to update user count
     items.push(new cost_tree_item(
@@ -339,26 +388,34 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       {
         line: 5,
         provider: 'openai',
-        model: 'gpt-4',
-        prompt_text: 'hello world this is a test prompt',
-        estimated_tokens: 8,
-        estimated_cost: 0.00024
+        model: 'gpt-4-32k',
+        prompt_text: 'Analyzing entire repository codebase...',
+        estimated_tokens: 12500,
+        estimated_cost: 0.75 // High cost
       },
       {
         line: 12,
         provider: 'anthropic',
-        model: 'claude-sonnet-4',
-        prompt_text: 'another test prompt for anthropic',
-        estimated_tokens: 8,
-        estimated_cost: 0.000024
+        model: 'claude-3-opus',
+        prompt_text: 'Complex reasoning task...',
+        estimated_tokens: 4000,
+        estimated_cost: 0.06 // Medium cost
       },
       {
-        line: 20,
+        line: 25,
+        provider: 'openai',
+        model: 'gpt-4',
+        prompt_text: 'hello world this is a test prompt',
+        estimated_tokens: 500,
+        estimated_cost: 0.015
+      },
+      {
+        line: 42,
         provider: 'openai',
         model: 'gpt-3.5-turbo',
-        prompt_text: 'cheaper model test',
-        estimated_tokens: 4,
-        estimated_cost: 0.000002
+        prompt_text: 'simple completion',
+        estimated_tokens: 50,
+        estimated_cost: 0.0001
       }
     ];
   }

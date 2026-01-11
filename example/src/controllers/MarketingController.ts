@@ -11,7 +11,7 @@ export class MarketingController {
         
         for (const user of users.rows) {
             const email = await openai.chat.completions.create({
-                model: 'gpt-4',
+                model: "gpt-4o",
                 messages: [{ role: 'user', content: `Write email for ${user.name} about our new feature.` }]
             });
             
@@ -30,8 +30,7 @@ export class MarketingController {
         }
         res.json(results);
     }
-
-    // Helper method called in loop
+    
     private async analyzeEventType(type: string) {
         return await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',

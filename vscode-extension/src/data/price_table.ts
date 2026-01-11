@@ -1,7 +1,7 @@
 import { pricing_table } from '../types';
 
 export const pricing: pricing_table = {
-  // --- OpenAI (Prices updated Jan 2026) ---
+  // --- OpenAI ---
   'gpt-5': { input: 0.00125, output: 0.01 },
   'gpt-5-mini': { input: 0.00025, output: 0.002 },
   'gpt-5-pro': { input: 0.015, output: 0.12 },
@@ -12,9 +12,10 @@ export const pricing: pricing_table = {
   'gpt-4o': { input: 0.0025, output: 0.01 },
   'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
   'gpt-4-turbo': { input: 0.01, output: 0.03 },
+  'gpt-4-32k': { input: 0.06, output: 0.12 }, // Legacy High Cost
   'text-embedding-3-small': { input: 0.00002, output: 0 },
   'text-embedding-3-large': { input: 0.00013, output: 0 },
-  'dall-e-3': { input: 0.04, output: 0.04 }, // Standard 1024x1024
+  'dall-e-3': { input: 0.08, output: 0.08 }, // Standard 1024x1024
 
   // --- Anthropic ---
   'claude-3-opus-20240229': { input: 0.015, output: 0.075 },
@@ -22,7 +23,7 @@ export const pricing: pricing_table = {
   'claude-3-5-haiku-latest': { input: 0.0008, output: 0.004 },
   'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 },
 
-  // --- Google Gemini (Tiered <200k context rates) ---
+  // --- Google Gemini ---
   'gemini-3-pro': { input: 0.002, output: 0.012 },
   'gemini-2.5-pro': { input: 0.00125, output: 0.01 },
   'gemini-2.5-flash': { input: 0.00015, output: 0.0006 },
@@ -41,12 +42,12 @@ export const pricing: pricing_table = {
   'command-r': { input: 0.00015, output: 0.0006 },
   'embed-english-v3.0': { input: 0.0001, output: 0 },
 
-  // --- AWS Bedrock (On-Demand Standard) ---
+  // --- AWS Bedrock ---
   'anthropic.claude-3-5-sonnet-v2': { input: 0.003, output: 0.015 },
   'meta.llama-3.3-70b-instruct': { input: 0.00059, output: 0.00079 },
   'amazon.titan-text-express-v1': { input: 0.0008, output: 0.0016 },
 
-  // --- Maps & Location (Cost per 1k requests) ---
+  // --- Maps & Location ---
   'mapbox-geocoding': { input: 0.50, output: 0 }, 
   'google-maps-places': { input: 17.00, output: 0 }, 
   'google-maps-directions': { input: 5.00, output: 0 },

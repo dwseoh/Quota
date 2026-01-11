@@ -12,6 +12,8 @@ import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
 import { PatternDetector } from './optimization/detectors/pattern_detector';
 import { OptimizationSuggestion } from './optimization/types';
+import { CostCodeActionProvider } from './code_action_provider';
+import { CostDecorationProvider } from './decoration_provider';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('cost-tracker extension is now active');
@@ -126,6 +128,11 @@ export function activate(context: vscode.ExtensionContext) {
     const totalCost = allCalls.reduce((sum, call) => sum + call.estimated_cost, 0);
     const userCount = tree_provider.get_user_count();
     updateStatusBar(totalCost, userCount);
+
+    // Update Decorations
+    if (vscode.window.activeTextEditor) {
+        decorationProvider.updateDecorations(vscode.window.activeTextEditor, allCalls);
+    }
   };
 
   // Helper functions (simplified versions from parser)
@@ -272,6 +279,18 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // --- Optimization Commands ---
+  // Register Code Action Provider (One-Click Savings)
+  const codeActionProvider = new CostCodeActionProvider();
+  context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider(
+          ['python', 'typescript', 'javascript', 'json'],
+          codeActionProvider,
+          {
+              providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+          }
+      )
+  );
+
   const show_suggestion_cmd = vscode.commands.registerCommand(
       'cost-tracker.showSuggestionDetails',
       (suggestion: OptimizationSuggestion) => {
@@ -463,23 +482,48 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // refresh on document open
-  context.subscriptions.push(
-    vscode.workspace.onDidOpenTextDocument((document) => {
-      codelens_provider.refresh();
-      tree_provider.refresh();
-    })
-  );
-
+  // --- Decoration Provider (Visual Heatmap) ---
+  const decorationProvider = new CostDecorationProvider();
+  
   // refresh on active editor change
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
         codelens_provider.refresh();
         tree_provider.refresh();
+        updateTreeviewWithAllCalls(); 
       }
     })
   );
+
+  // refresh on document open
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      codelens_provider.refresh();
+      tree_provider.refresh();
+      updateTreeviewWithAllCalls();
+    })
+  );
+
+  // re-index on save for incremental updates
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(async (document) => {
+      const filePath = document.uri.fsPath;
+      if (filePath.endsWith('.py') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
+        try {
+          await indexWorkspace(workspaceRoot);
+          
+          await updateTreeviewWithAllCalls();
+          
+          codelens_provider.refresh();
+          tree_provider.refresh();
+        } catch (error) {
+          console.error('Error re-indexing on save:', error);
+        }
+      }
+    })
+  );
+
 }
 
 export function deactivate() {
