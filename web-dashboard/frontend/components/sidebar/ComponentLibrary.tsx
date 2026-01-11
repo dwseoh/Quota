@@ -21,17 +21,9 @@ import {
     Search as SearchIcon,
     LucideIcon
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isDarkColor } from "@/lib/utils";
 
-// Detect if a color is very dark (black or near-black)
-const isDarkColor = (color: string): boolean => {
-    const hex = color.replace("#", "");
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness < 50; // Only very dark colors
-};
+// Map icon names to Lucide components
 
 // Map icon names to Lucide components
 const iconMap: Record<string, LucideIcon> = {

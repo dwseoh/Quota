@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Logo from "@/components/Logo";
 import SandboxCard from "@/components/explore/SandboxCard";
 import { Search, Loader2, CheckCircle } from "lucide-react";
+import { getSandboxes } from "@/lib/actions";
 
 interface Sandbox {
     sandboxId: string;
@@ -38,11 +39,8 @@ export default function ExplorePage() {
 
     const fetchSandboxes = async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/sandboxes");
-            if (response.ok) {
-                const data = await response.json();
-                setSandboxes(data);
-            }
+            const data = await getSandboxes();
+            setSandboxes(data);
         } catch (error) {
             console.error("Failed to fetch sandboxes:", error);
         } finally {
@@ -55,7 +53,7 @@ export default function ExplorePage() {
     );
 
     return (
-        <div className="min-h-screen bg-[var(--background)] flex flex-col">
+        <div className="h-screen overflow-y-auto bg-[var(--background)] flex flex-col">
             {/* Header */}
             <header className="border-b border-[var(--border)] bg-[var(--background-secondary)] px-6 py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
