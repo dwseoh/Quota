@@ -139,6 +139,21 @@ export class PatternDetector implements OptimizationDetector {
                 const startPos = this.getLineCol(context.content, startIdx);
                 const endPos = this.getLineCol(context.content, endIdx);
 
+                let quickFix = undefined;
+                if (rule.id === 'legacy-gpt4') {
+                     quickFix = {
+                         targetFile: context.uri.fsPath,
+                         replacementRange: { startLine: startPos.line - 1, startColumn: startPos.col, endLine: endPos.line - 1, endColumn: endPos.col },
+                         replacementText: '"gpt-4o"'
+                     };
+                } else if (rule.id === 'legacy-davinci') {
+                     quickFix = {
+                         targetFile: context.uri.fsPath,
+                         replacementRange: { startLine: startPos.line - 1, startColumn: startPos.col, endLine: endPos.line - 1, endColumn: endPos.col },
+                         replacementText: '"gpt-3.5-turbo-instruct"'
+                     };
+                }
+
                 suggestions.push({
                     id: rule.id,
                     title: rule.title,
@@ -151,7 +166,8 @@ export class PatternDetector implements OptimizationDetector {
                         startColumn: startPos.col,
                         endLine: endPos.line,
                         endColumn: endPos.col
-                    }
+                    },
+                    quickFix
                 });
             }
         }

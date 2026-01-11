@@ -19,6 +19,11 @@ export interface OptimizationSuggestion {
         arguments?: any[];
     };
     costImpact?: string; // e.g. "High", "Medium", "Low" or "$50/mo"
+    quickFix?: {
+        targetFile: string;
+        replacementRange: { startLine: number, startColumn: number, endLine: number, endColumn: number }; // 0-indexed for VS Code API
+        replacementText: string;
+    };
 }
 
 export interface FileContext {

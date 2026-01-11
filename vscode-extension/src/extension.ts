@@ -12,6 +12,7 @@ import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
 import { PatternDetector } from './optimization/detectors/pattern_detector';
 import { OptimizationSuggestion } from './optimization/types';
+import { CostCodeActionProvider } from './code_action_provider';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('cost-tracker extension is now active');
@@ -272,6 +273,18 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   // --- Optimization Commands ---
+  // Register Code Action Provider (One-Click Savings)
+  const codeActionProvider = new CostCodeActionProvider();
+  context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider(
+          ['python', 'typescript', 'javascript', 'json'],
+          codeActionProvider,
+          {
+              providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+          }
+      )
+  );
+
   const show_suggestion_cmd = vscode.commands.registerCommand(
       'cost-tracker.showSuggestionDetails',
       (suggestion: OptimizationSuggestion) => {
