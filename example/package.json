@@ -1,14 +1,27 @@
 {
-  "name": "badcostapp-demo",
+  "name": "fintech-risk-analyzer",
   "version": "1.0.0",
-  "main": "src/index.js",
-  "type": "commonjs",
+  "description": "High-performance financial risk analysis platform",
+  "main": "dist/app.js",
   "scripts": {
-    "dev": "node src/index.js",
-    "load": "node scripts/loadTest.js"
+    "start": "node dist/app.js",
+    "build": "tsc",
+    "dev": "ts-node src/app.ts"
   },
   "dependencies": {
-    "axios": "^1.6.0",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "mongoose": "^7.0.0",
+    "pg": "^8.10.0",
+    "openai": "^4.28.0",
+    "stripe": "^14.0.0",
+    "aws-sdk": "^2.1500.0",
+    "@anthropic-ai/sdk": "^0.18.0",
+    "ioredis": "^5.3.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   }
 }

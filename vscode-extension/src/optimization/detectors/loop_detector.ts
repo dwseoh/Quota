@@ -14,7 +14,9 @@ export class LoopDetector implements OptimizationDetector {
         // Databases
         'find', 'findone', 'findbyid', 'scan', 'query', 'get', 'put', 'postgres', 'mysql', 'prisma',
         // Generic HTTP
-        'fetch', 'axios', 'request'
+        'fetch', 'axios', 'request',
+        // Common expensive business logic
+        'categorize', 'classify', 'analyze', 'predict'
     ];
 
     private cachePatterns = ['cache', 'redis', 'memcached', 'memoize', 'store', 'kv'];
@@ -127,7 +129,11 @@ export class LoopDetector implements OptimizationDetector {
                     description += `It looks like you have some caching logic, but verify it effectively reduces calls.`;
                     title = 'Verify Cache Effectiveness';
                 } else {
-                    description += `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`;
+                    if (lowerName.includes('categorize') || lowerName.includes('classify')) {
+                         description += `Classification tasks often have repeating inputs. Implement a local cache (Map) or Redis to skip redundant calls.`;
+                    } else {
+                         description += `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`;
+                    }
                 }
 
                 suggestions.push({

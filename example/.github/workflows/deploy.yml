@@ -1,16 +1,19 @@
-name: Deploy Production
+name: Deploy Fintech App
 
 on:
   push:
     branches: ["main"]
 
 jobs:
-  build-and-deploy:
-    # FLAW: Expensive runner type
-    runs-on: active-large-runner-gpu-optimized
+  build:
+    # Flaw: Using massive runner for simple build
+    runs-on: ubuntu-latest-xlarge
+
     steps:
       - uses: actions/checkout@v3
-      - name: Build
-        run: npm run build
-      - name: Test
-        run: npm run test
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20.x"
+      - run: npm ci
+      - run: npm run build
