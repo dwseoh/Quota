@@ -85,6 +85,16 @@ export default function ArchitectureCanvas() {
                 onConnect={onConnect}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
+                onPaneClick={() => {
+                    // Deselect all nodes when clicking on empty canvas
+                    useArchitectureStore.getState().onNodesChange(
+                        nodes.map((node) => ({
+                            id: node.id,
+                            type: "select" as const,
+                            selected: false,
+                        }))
+                    );
+                }}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView
@@ -100,11 +110,9 @@ export default function ArchitectureCanvas() {
                     size={2}
                     color="rgba(255, 255, 255, 0.2)"
                 />
-                <Controls
-                    className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl"
-                />
+                <Controls className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg [&>button]:!bg-[var(--background-tertiary)] [&>button]:!rounded-lg [&>button]:!border [&>button]:!border-[var(--border)] [&>button]:!w-8 [&>button]:!h-8" />
                 <MiniMap
-                    className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl"
+                    className="!bg-[var(--glass-bg)] !border-[var(--glass-border)] !backdrop-blur-xl !rounded-xl !shadow-lg"
                     nodeColor={(node) => {
                         const data = node.data as any;
                         return data.color || "var(--primary)";

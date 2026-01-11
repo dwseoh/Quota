@@ -155,11 +155,15 @@ export const useArchitectureStore = create<ArchitectureStore>((set, get) => ({
     },
 
     saveToFile: () => {
-        const { nodes, edges, scope } = get();
+        const { nodes, edges, scope, costEstimate } = get();
         const data = {
             nodes,
             edges,
             scope,
+            costEstimate: {
+                total: costEstimate.total,
+                breakdown: costEstimate.breakdown,
+            },
             timestamp: Date.now(),
         };
         const json = JSON.stringify(data, null, 2);

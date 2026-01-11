@@ -22,7 +22,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "backend",
         name: "Backend",
-        icon: "⚙️",
+        icon: "server",
         components: [
             { id: "fastapi", name: "FastAPI", icon: logo("fastapi"), color: "#009688", baseCost: 0 },
             { id: "express", name: "Express", icon: logo("express"), color: "#000000", baseCost: 0 },
@@ -37,7 +37,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "frontend",
         name: "Frontend",
-        icon: "🎨",
+        icon: "palette",
         components: [
             { id: "react", name: "React", icon: logo("react"), color: "#61dafb", baseCost: 0 },
             { id: "nextjs", name: "Next.js", icon: logo("nextdotjs"), color: "#000000", baseCost: 0 },
@@ -51,7 +51,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "database",
         name: "Database",
-        icon: "💾",
+        icon: "database",
         components: [
             { id: "postgresql", name: "PostgreSQL", icon: logo("postgresql"), color: "#336791", baseCost: 15 },
             { id: "mysql", name: "MySQL", icon: logo("mysql"), color: "#4479a1", baseCost: 12 },
@@ -66,7 +66,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "hosting",
         name: "Hosting",
-        icon: "☁️",
+        icon: "cloud",
         components: [
             { id: "vercel", name: "Vercel", icon: logo("vercel"), color: "#000000", baseCost: 20 },
             { id: "netlify", name: "Netlify", icon: logo("netlify"), color: "#00c7b7", baseCost: 19 },
@@ -81,7 +81,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "ml",
         name: "ML/AI",
-        icon: "🤖",
+        icon: "brain",
         components: [
             { id: "tensorflow", name: "TensorFlow", icon: logo("tensorflow"), color: "#ff6f00", baseCost: 50 },
             { id: "pytorch", name: "PyTorch", icon: logo("pytorch"), color: "#ee4c2c", baseCost: 50 },
@@ -95,7 +95,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "auth",
         name: "Authentication",
-        icon: "🔐",
+        icon: "lock",
         components: [
             { id: "auth0", name: "Auth0", icon: logo("auth0"), color: "#eb5424", baseCost: 23 },
             { id: "clerk", name: "Clerk", icon: logo("clerk"), color: "#6c47ff", baseCost: 25 },
@@ -109,7 +109,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "cache",
         name: "Caching",
-        icon: "⚡",
+        icon: "zap",
         components: [
             { id: "redis-cache", name: "Redis", icon: logo("redis"), color: "#dc382d", baseCost: 10 },
             { id: "memcached", name: "Memcached", icon: logo("memcached"), color: "#000000", baseCost: 8 },
@@ -121,7 +121,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "queue",
         name: "Message Queue",
-        icon: "📬",
+        icon: "mail",
         components: [
             { id: "rabbitmq", name: "RabbitMQ", icon: logo("rabbitmq"), color: "#ff6600", baseCost: 12 },
             { id: "kafka", name: "Apache Kafka", icon: logo("apachekafka"), color: "#000000", baseCost: 50 },
@@ -133,7 +133,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "storage",
         name: "Storage",
-        icon: "📦",
+        icon: "package",
         components: [
             { id: "s3", name: "AWS S3", icon: logo("amazons3"), color: "#ff9900", baseCost: 5 },
             { id: "gcs", name: "Google Cloud Storage", icon: logo("googlecloud"), color: "#4285f4", baseCost: 5 },
@@ -145,7 +145,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "cicd",
         name: "CI/CD",
-        icon: "🔄",
+        icon: "refresh-cw",
         components: [
             { id: "github-actions", name: "GitHub Actions", icon: logo("githubactions"), color: "#2088ff", baseCost: 0 },
             { id: "gitlab-ci", name: "GitLab CI", icon: logo("gitlab"), color: "#fc6d26", baseCost: 0 },
@@ -157,7 +157,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "monitoring",
         name: "Monitoring",
-        icon: "📊",
+        icon: "activity",
         components: [
             { id: "sentry", name: "Sentry", icon: logo("sentry"), color: "#362d59", baseCost: 26 },
             { id: "datadog", name: "DataDog", icon: logo("datadog"), color: "#632ca6", baseCost: 15 },
@@ -169,7 +169,7 @@ export const COMPONENT_LIBRARY: ComponentCategory[] = [
     {
         id: "search",
         name: "Search",
-        icon: "🔍",
+        icon: "search",
         components: [
             { id: "elasticsearch", name: "Elasticsearch", icon: logo("elasticsearch"), color: "#005571", baseCost: 45 },
             { id: "algolia", name: "Algolia", icon: logo("algolia"), color: "#5468ff", baseCost: 50 },
