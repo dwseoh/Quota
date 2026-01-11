@@ -1,0 +1,30 @@
+# FastAPI and server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+
+
+# Pydantic for data validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# RAG pipeline (LangChain)
+langchain>=0.1.0
+langchain-community>=0.0.10
+langchain-google-genai>=0.0.5
+langchain-text-splitters>=0.0.1
+langchain-core>=0.1.0
+google-genai>=0.2.0
+
+# Vector store (FAISS)
+faiss-cpu>=1.7.4
+
+# Additional dependencies
+python-multipart>=0.0.6
+
+# MongoDB
+motor==3.3.2
+pymongo==4.6.1

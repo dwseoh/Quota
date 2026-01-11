@@ -87,6 +87,10 @@ temp/
 *.sqlite
 *.sqlite3
 
+# --- vector database / embeddings ---
+faiss_index/
+*.faiss
+
 # --- misc ---
 .cache/
 .parcel-cache/
@@ -100,3 +104,5 @@ temp/
 test-analyze.js
 *.test.js
 !src/test/*.test.ts
+*__pycache__
+/__pycache__
