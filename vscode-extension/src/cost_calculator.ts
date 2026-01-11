@@ -4,29 +4,12 @@
  */
 
 import { llm_call, pricing_table, cost_breakdown, pricing_info } from './types';
+import { pricing } from './data/price_table';
 
 /**
- * hardcoded pricing table (accurate as of jan 2025)
+ * pricing table imported from data source
  */
-export const pricing: pricing_table = {
-  // OpenAI
-  'gpt-4': { input: 0.03, output: 0.06 },
-  'gpt-4-32k': { input: 0.045, output: 0.09 },
-  'gpt-4o': { input: 0.02, output: 0.04 },
-  'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
-
-  // Anthropic
-  'claude-sonnet-4': { input: 0.003, output: 0.015 },
-  'claude-sonnet-4-20250514': { input: 0.003, output: 0.015 }, // Versioned alias
-  'claude-haiku': { input: 0.00025, output: 0.00125 },
-  'claude-haiku-20240307': { input: 0.00025, output: 0.00125 }, // Versioned alias
-
-  // Gemini / Google (approximate — verify with provider)
-  'gemini-1.0': { input: 0.002, output: 0.01 },
-  'gemini-2': { input: 0.006, output: 0.012 },
-  'gemini-3': { input: 0.012, output: 0.024 },
-  'gemini-3-pro': { input: 0.015, output: 0.03 }
-};
+export { pricing };
 
 /**
  * estimate tokens from text using simple heuristic
@@ -44,31 +27,34 @@ export function estimate_tokens(text: string): number {
  * @param tokens - token count
  * @returns cost in dollars
  */
-export function calculate_cost(model: string, tokens: number): number {
-  // Normalize model name to handle versioned models (e.g., claude-sonnet-4-20250514 → claude-sonnet-4)
-  let normalizedModel = model;
-  
-  // Check if exact match exists first
-  if (!pricing[model]) {
-    // Try to normalize common patterns
-    if (model.includes('claude-sonnet')) {
-      normalizedModel = 'claude-sonnet-4';
-    } else if (model.includes('claude-haiku')) {
-      normalizedModel = 'claude-haiku';
-    } else if (model.includes('gpt-4')) {
-      normalizedModel = 'gpt-4';
-    } else if (model.includes('gpt-3.5')) {
-      normalizedModel = 'gpt-3.5-turbo';
+/**
+ * Find the best matching key in the pricing table
+ */
+function findMatchingKey(model: string): string | undefined {
+    const inputModel = model.toLowerCase().trim();
+    
+    // 1. Exact match
+    if (pricing[inputModel]) return inputModel;
+    
+    // 2. Substring match (longest wins)
+    const potentialMatches = Object.keys(pricing).filter(key => inputModel.includes(key));
+    if (potentialMatches.length > 0) {
+        potentialMatches.sort((a, b) => b.length - a.length);
+        return potentialMatches[0];
     }
+    
+    return undefined;
+}
+
+export function calculate_cost(model: string, tokens: number): number {
+  const matchedKey = findMatchingKey(model);
+  
+  if (!matchedKey) {
+    console.warn(`Unknown model/api: ${model}, using default rate`);
+    return (tokens / 1000) * 0.01; // Default fallback
   }
   
-  const model_pricing = pricing[normalizedModel];
-  if (!model_pricing) {
-    console.warn(`Unknown model: ${model}, using default rate`);
-    return (tokens / 1000) * 0.01; // Default rate if model not found
-  }
-  
-  // for mvp, assume input tokens only (conservative estimate)
+  const model_pricing = pricing[matchedKey];
   return (tokens / 1000) * model_pricing.input;
 }
 
@@ -85,7 +71,9 @@ export function get_cost_breakdown(
   input_tokens: number,
   output_tokens: number = 0
 ): cost_breakdown {
-  const model_pricing = pricing[model];
+  const matchedKey = findMatchingKey(model);
+  const model_pricing = matchedKey ? pricing[matchedKey] : undefined;
+
   if (!model_pricing) {
     return {
       input_tokens: 0,

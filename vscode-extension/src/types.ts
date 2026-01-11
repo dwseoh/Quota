@@ -6,7 +6,7 @@
 export interface llm_call {
   line: number;
   file_path?: string; // optional for backwards compatibility
-  provider: "openai" | "anthropic";
+  provider: string; // e.g. "openai", "stripe", "mapbox"
   model: string;
   prompt_text: string;
   estimated_tokens: number;
