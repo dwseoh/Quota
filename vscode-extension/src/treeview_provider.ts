@@ -4,19 +4,21 @@
  */
 
 import * as vscode from 'vscode';
-import { llm_call } from './types';
+import * as path from 'path';
+import { llm_call, CodespaceGraph } from './types';
 
 /**
  * tree item types for different sections
  */
-type tree_item_type = 'root' | 'summary' | 'calls_section' | 'call_item' | 'simulator_section' | 'simulator_item' | 'action_button';
+type tree_item_type = 'root' | 'summary' | 'calls_section' | 'call_item' | 'simulator_section' | 'simulator_item' | 'action_button' | 'project_section' | 'file_item';
 
 export class cost_tree_item extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
     public readonly item_type: tree_item_type = 'root',
-    public readonly call_data?: llm_call
+    public readonly call_data?: llm_call,
+    public readonly file_path?: string
   ) {
     super(label, collapsibleState);
     
@@ -51,6 +53,17 @@ export class cost_tree_item extends vscode.TreeItem {
           title: 'Update User Count'
         };
         break;
+      case 'project_section':
+        this.iconPath = new vscode.ThemeIcon('project');
+        break;
+      case 'file_item':
+        this.iconPath = new vscode.ThemeIcon('file-code');
+        this.command = {
+             command: 'vscode.open',
+             title: 'Open File',
+             arguments: [vscode.Uri.file(file_path || '')]
+        };
+        break;
     }
     
     // add context value for right-click menus
@@ -65,6 +78,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     this._onDidChangeTreeData.event;
 
   private detected_calls: llm_call[] = [];
+  private project_graph: CodespaceGraph | null = null;
   private user_count: number = 100;
   private use_mock_data: boolean = true; // for testing before parser is ready
 
@@ -90,6 +104,8 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
         return Promise.resolve(this.get_call_items());
       case 'simulator_section':
         return Promise.resolve(this.get_simulator_items());
+      case 'project_section':
+        return Promise.resolve(this.get_project_items());
       default:
         return Promise.resolve([]);
     }
@@ -127,6 +143,14 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
         'calls_section'
       ));
     }
+
+    // Project Analysis Section
+    // Always show it to verify UI, even if data is missing
+    items.push(new cost_tree_item(
+        'Project Analysis',
+        vscode.TreeItemCollapsibleState.Expanded,
+        'project_section'
+    ));
     
     // scale simulator section (collapsible)
     items.push(new cost_tree_item(
@@ -204,6 +228,59 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   }
 
   /**
+   * get project analysis items
+   */
+  private get_project_items(): cost_tree_item[] {
+      if (!this.project_graph) { 
+          return [new cost_tree_item(
+              'No analysis data available',
+              vscode.TreeItemCollapsibleState.None,
+              'summary'
+          )]; 
+      }
+
+      const items: cost_tree_item[] = [];
+      const fileCosts = new Map<string, number>();
+
+      // Aggregate costs per file
+      // In a real implementation we would iterate through all units and classifications
+      // For now, we'll just look at the units in the graph that are classified as paid APIs
+      
+      for (const unit of this.project_graph.units) {
+          const classification = this.project_graph.classifications[unit.id];
+          if (classification && classification.role === 'consumer' && classification.category === 'llm') {
+              // Quick cost estimation (simplistic for demo)
+              const cost = 0.001; // Placeholder cost per call
+              const filePath = unit.location.fileUri;
+              fileCosts.set(filePath, (fileCosts.get(filePath) || 0) + cost);
+          }
+      }
+
+      // Sort files by cost
+      const sortedFiles = Array.from(fileCosts.entries())
+          .sort(([, costA], [, costB]) => costB - costA)
+          .slice(0, 5); // Top 5
+
+      items.push(new cost_tree_item(
+          `Files Indexed: ${this.project_graph.files.length}`,
+          vscode.TreeItemCollapsibleState.None,
+          'summary'
+      ));
+
+      for (const [filePath, cost] of sortedFiles) {
+          items.push(new cost_tree_item(
+              `${path.basename(filePath)} ($${cost.toFixed(3)})`,
+              vscode.TreeItemCollapsibleState.None,
+              'file_item',
+              undefined,
+              filePath
+          ));
+      }
+
+      return items;
+  }
+
+  /**
    * get mock data for testing (remove when parser is ready)
    */
   private get_mock_data(): llm_call[] {
@@ -242,6 +319,15 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     this.detected_calls = calls;
     this.use_mock_data = false; // switch to real data
     this.refresh();
+  }
+
+  /**
+   * update project graph
+   */
+  update_project(graph: CodespaceGraph): void {
+      // console.log(`🌲 TreeProvider: Received graph with ${graph.files.length} files and ${graph.units.length} units`);
+      this.project_graph = graph;
+      this.refresh();
   }
 
   /**

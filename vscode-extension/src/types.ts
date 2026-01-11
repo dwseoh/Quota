@@ -66,6 +66,12 @@ export interface FileEntry {
   lastModified: number;
 }
 
+export interface FileEntry {
+  path: string;
+  hash: string;
+  lastModified: number;
+}
+
 export interface FileNode {
   path: string;
   hash: string;

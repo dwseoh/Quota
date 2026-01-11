@@ -1,6 +1,6 @@
 {
   "name": "cost-tracker",
-  "displayName": "Cost Tracker",
+  "displayName": "Quota",
   "description": "Track and optimize costs in your codebase",
   "version": "0.0.1",
 
@@ -11,14 +11,10 @@
     "Other"
   ],
   "activationEvents": [
-  "onLanguage:python",
-  "onLanguage:typescript",
-  "onLanguage:javascript",
-  "onCommand:cost-tracker.showCostDetails",
-  "onCommand:cost-tracker.updateUserCount",
-  "onCommand:cost-tracker.refresh"
-]
-,
+    "onLanguage:python",
+    "onLanguage:typescript",
+    "onLanguage:javascript"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -45,11 +41,21 @@
         "title": "Show Call Details"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cost-tracker-sidebar",
+          "title": "Quota",
+          "icon": "media/logo.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "cost-tracker-sidebar": [
         {
           "id": "cost-tracker-panel",
-          "name": "Cost Tracker"
+          "name": "Quota",
+          "icon": "media/logo.svg"
         }
       ]
     },
