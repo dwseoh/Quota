@@ -1,4 +1,4 @@
-# cost tracker - vscode extension
+# quota - vscode extension
 
 vscode extension that tracks and optimizes costs in your codebase. mvp focuses on llm api calls.
 
