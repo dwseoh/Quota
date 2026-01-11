@@ -67,7 +67,12 @@ export function activate(context: vscode.ExtensionContext) {
       console.log('  2. Are imports detected? (check classification logs)');
       console.log('  3. Is quick detection working? (check intelligence.ts)');
     }
+    
+    // Update tree provider with both calls and full project graph
+    // console.log('🔄 Sending data to TreeProvider...');
     tree_provider.update_calls(allCalls);
+    tree_provider.update_project(graph);
+    // console.log('✅ Data sent to TreeProvider');
     
     // Update status bar with new totals
     const totalCost = allCalls.reduce((sum, call) => sum + call.estimated_cost, 0);
