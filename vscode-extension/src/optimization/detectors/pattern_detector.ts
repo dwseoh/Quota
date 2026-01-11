@@ -60,7 +60,7 @@ export class PatternDetector implements OptimizationDetector {
         // --- Infrastructure (CI/CD, Cloud) ---
         {
             id: 'github-large-runner',
-            regex: /runs-on:\s*.*(large|xlarge|2xlarge|gpu)/i,
+            regex: /runs-on:\s*.*(large|xlarge|2xlarge|gpu)/ig,
             title: 'Expensive CI Runner',
             message: 'Usage of large GitHub Actions runners detected. Verify if standard runners are sufficient.',
             severity: 'info',

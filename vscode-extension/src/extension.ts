@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
   const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
   // Helper function to collect all LLM calls from cached graph
-  const updateTreeviewWithAllCalls = () => {
+  const updateTreeviewWithAllCalls = async () => {
     const graph = getCachedGraph();
     if (!graph) {
       console.log('❌ No cached graph available yet');
@@ -44,13 +44,10 @@ export function activate(context: vscode.ExtensionContext) {
       console.log(`🔍 Unit: ${unit.name} | Classification: ${classification ? `${classification.role}/${classification.category}/${classification.provider}` : 'none'}`);
       
       if (classification && classification.role === 'consumer' && classification.category === 'llm') {
-        // Import helper functions from parser
         const model = extractModelFromClassification(unit.body, classification.provider);
         const promptText = extractPromptFromUnit(unit.body);
         const tokens = estimateTokens(promptText);
         const cost = calculateCost(model, tokens);
-        
-        console.log(`✅ LLM Call Found: ${unit.name} | Model: ${model} | Tokens: ${tokens} | Cost: $${cost.toFixed(6)}`);
         
         allCalls.push({
           line: unit.location.startLine, // Keep 1-indexed for display
@@ -65,18 +62,65 @@ export function activate(context: vscode.ExtensionContext) {
     }
     
     console.log(`\n🎯 TOTAL: Found ${allCalls.length} LLM calls across workspace`);
-    if (allCalls.length === 0) {
-      console.log('⚠️ No LLM calls detected! Check:');
-      console.log('  1. Are files being parsed? (check units count above)');
-      console.log('  2. Are imports detected? (check classification logs)');
-      console.log('  3. Is quick detection working? (check intelligence.ts)');
+    
+    // --- Run Optimization Analysis Globally ---
+    // Optimization: Debounce this heavily? For now, we just rely on explicit calls or save events.
+    // Optimization: Use FS read instead of openTextDocument to avoid heavy editor overhead.
+
+    const allSuggestions: OptimizationSuggestion[] = [];
+    const optManager = OptimizationManager.getInstance();
+
+    // Helper to process files safely and fast
+    const processFilesFast = async (uris: vscode.Uri[]) => {
+        // Process in chunks of 5 to avoid event loop blocking
+        const CHUNK_SIZE = 5;
+        for (let i = 0; i < uris.length; i += CHUNK_SIZE) {
+            const chunk = uris.slice(i, i + CHUNK_SIZE);
+            await Promise.all(chunk.map(async (uri) => {
+                try {
+                    // Fast read from disk
+                    const fileContent = await vscode.workspace.fs.readFile(uri);
+                    const text = new TextDecoder().decode(fileContent);
+                    const ext = uri.fsPath.split('.').pop() || '';
+                    
+                    const suggestions = await optManager.analyze({
+                        uri: uri,
+                        content: text,
+                        languageId: ext === 'ts' ? 'typescript' : ext === 'py' ? 'python' : ext
+                    });
+                    
+                    suggestions.forEach(s => allSuggestions.push(s));
+                } catch (e) {
+                    console.warn(`Skipping optim scan for ${uri.fsPath}: ${e}`);
+                }
+            }));
+            // Tiny yield to let UI breathe
+            await new Promise(r => setTimeout(r, 1)); 
+        }
+    };
+
+    // 1. Scan Config Files (Found by glob)
+    // Cache the glob result? For now, glob is relatively fast, but reading is slow.
+    const configFiles = await vscode.workspace.findFiles('**/*.{tf,yml,yaml,json}', '**/node_modules/**');
+    await processFilesFast(configFiles);
+
+    // 2. Scan Code Files (from graph)
+    const filePathsToScan = new Set<string>(allCalls.map(c => c.file_path || '').filter(Boolean));
+    if (vscode.window.activeTextEditor) {
+        filePathsToScan.add(vscode.window.activeTextEditor.document.uri.fsPath);
     }
     
-    // Update tree provider with both calls and full project graph
-    // console.log('🔄 Sending data to TreeProvider...');
-    tree_provider.update_calls(allCalls);
-    tree_provider.update_project(graph);
-    // console.log('✅ Data sent to TreeProvider');
+    // Convert to URIs
+    const codeUris = Array.from(filePathsToScan).map(p => vscode.Uri.file(p));
+    // Limit total scan to prevention locking up on massive repos
+    const limitedCodeUris = codeUris.slice(0, 50); 
+    await processFilesFast(limitedCodeUris);
+
+    // Dedup by ID
+    const uniqueSuggestions = Array.from(new Map(allSuggestions.map(s => [s.id + s.location.fileUri, s])).values());
+    
+    // Update tree provider efficiently (single refresh)
+    tree_provider.update_all_data(allCalls, graph, uniqueSuggestions);
     
     // Update status bar with new totals
     const totalCost = allCalls.reduce((sum, call) => sum + call.estimated_cost, 0);
@@ -210,7 +254,7 @@ export function activate(context: vscode.ExtensionContext) {
         console.log('========================================\n');
         
         // Update treeview with real data from all files
-        updateTreeviewWithAllCalls();
+        await updateTreeviewWithAllCalls();
         
         vscode.window.showInformationMessage('Cost Tracker: Workspace indexed successfully');
         
@@ -277,10 +321,7 @@ export function activate(context: vscode.ExtensionContext) {
         tree_provider.update_user_count(Number(input));
         
         // Update status bar immediately
-        const graph = getCachedGraph(); // We need to re-calculate total cost or just grab it.
-        // Easier to just trigger a refresh of the whole tree/status or grab calls from tree_provider?
-        // Let's just re-run the full update logic for consistency
-        updateTreeviewWithAllCalls(); 
+        await updateTreeviewWithAllCalls(); 
       }
     }
   );
@@ -298,7 +339,7 @@ export function activate(context: vscode.ExtensionContext) {
       }, async (progress) => {
         try {
           await indexWorkspace(workspaceRoot);
-          updateTreeviewWithAllCalls();
+          await updateTreeviewWithAllCalls();
           codelens_provider.refresh();
           tree_provider.refresh();
           vscode.window.showInformationMessage('Cost analysis refreshed');
@@ -375,8 +416,12 @@ export function activate(context: vscode.ExtensionContext) {
       const filePath = document.uri.fsPath;
       if (filePath.endsWith('.py') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
         try {
+          // Debounce logic could be here, but for now relying on async queue
           await indexWorkspace(workspaceRoot);
-          updateTreeviewWithAllCalls();
+          
+          // Don't await this blocking UI - let it happen in background
+          updateTreeviewWithAllCalls().catch(console.error);
+          
           codelens_provider.refresh();
           tree_provider.refresh();
         } catch (error) {

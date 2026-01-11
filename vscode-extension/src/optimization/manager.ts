@@ -27,26 +27,31 @@ export class OptimizationManager {
     }
 
     /**
-     * Analyze a document using all applicable detectors
+     * Analyze a document or content context
      */
     public async analyze(
-        document: vscode.TextDocument, 
+        input: vscode.TextDocument | { uri: vscode.Uri, content: string, languageId: string }, 
         codeUnits?: CodeUnit[]
     ): Promise<OptimizationSuggestion[]> {
-        const fileContext: FileContext = {
-            uri: document.uri,
-            content: document.getText(),
-            languageId: document.languageId
-        };
+        const fileContext: FileContext = 'getText' in input 
+            ? {
+                uri: input.uri,
+                content: input.getText(),
+                languageId: input.languageId
+              }
+            : input as FileContext;
 
-        const applicableDetectors = this.getDetectorsForFile(document.languageId, document.fileName);
+        const fileName = input.uri.fsPath;
+        const languageId = input.languageId;
+        
+        const applicableDetectors = this.getDetectorsForFile(languageId, fileName);
         const allSuggestions: OptimizationSuggestion[] = [];
 
         if (applicableDetectors.length === 0) {
             return [];
         }
 
-        console.log(`🔍 Running ${applicableDetectors.length} detectors on ${document.fileName}...`);
+        console.log(`🔍 Running ${applicableDetectors.length} detectors on ${fileName}...`);
 
         // Run detectors in parallel
         const promises = applicableDetectors.map(detector => 
