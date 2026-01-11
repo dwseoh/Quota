@@ -26,6 +26,7 @@ export default function ExplorePage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [showSuccessToast, setShowSuccessToast] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchSandboxes();
@@ -41,8 +42,10 @@ export default function ExplorePage() {
         try {
             const data = await getSandboxes();
             setSandboxes(data);
-        } catch (error) {
-            console.error("Failed to fetch sandboxes:", error);
+            setError(null);
+        } catch (err) {
+            console.error("Failed to fetch sandboxes:", err);
+            setError("Database connection error. Please try again later.");
         } finally {
             setLoading(false);
         }
@@ -99,6 +102,11 @@ export default function ExplorePage() {
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-20">
+                            <p className="text-[var(--error)] text-lg font-semibold mb-2">{error}</p>
+                            <p className="text-[var(--foreground-secondary)] text-sm">The backend service may be unavailable</p>
                         </div>
                     ) : filteredSandboxes.length === 0 ? (
                         <div className="text-center py-20">
