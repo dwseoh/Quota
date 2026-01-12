@@ -6,6 +6,13 @@
 
 <p> Real-time financial intelligence for your codebase. </p>
 
+![GitHub stars](https://img.shields.io/github/stars/dwseoh/Quota?style=for-the-badge)
+![GitHub forks](https://img.shields.io/github/forks/dwseoh/Quota?style=for-the-badge)
+![GitHub repo size](https://img.shields.io/github/repo-size/dwseoh/Quota?style=for-the-badge)
+![GitHub top language](https://img.shields.io/github/languages/top/dwseoh/Quota?style=for-the-badge)
+![GitHub last commit](https://img.shields.io/github/last-commit/dwseoh/Quota?style=for-the-badge)
+
+
 </div>
 
 ---
