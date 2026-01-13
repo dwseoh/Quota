@@ -106,3 +106,5 @@ test-analyze.js
 !src/test/*.test.ts
 *__pycache__
 /__pycache__
+
+./web-dashboard/backend/deployment-guide.md

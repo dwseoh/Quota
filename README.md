@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="" width="100">
+<img src="assets/logo.png" alt="" width="100">
 
 <h1> Quota </h1>
 
@@ -25,6 +25,10 @@ Quota solves that. It allows developers to track and optimize resource costs lik
 By surfacing resource impact _before_ shipping, Quota prevents budget overruns and ensures efficient scaling.
 
 Watch the demo: https://youtu.be/SUyDS37U6A0
+
+## System Workflow
+
+![Quota Workflow](assets/workflow.jpg)
 
 ## Key Features
 
@@ -53,6 +57,12 @@ Platform for architectural planning and cost forecasting.
 - **AI**: Google Gemini Pro, Tree-sitter, LangChain (RAG)
 - **Frontend**: Next.js, React Flow, Tailwind CSS
 - **Data**: MongoDB, Vector embeddings (FAISS)
+
+## Design Process
+
+![Initial Sketch](assets/sketch.jpg)
+
+*From napkin sketch to production: The initial concept that evolved into Quota's architecture.*
 
 ## Quick Start
 
