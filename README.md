@@ -1,6 +1,8 @@
 <div align="center">
 
-# Quota 💰
+<img src="assets/logo.png" width="120" height="120">
+
+# Quota
 
 Real-time financial intelligence for your codebase.
 
