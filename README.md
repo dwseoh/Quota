@@ -1,30 +1,25 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="" width="100">
+# Quota 💰
 
-<h1> Quota </h1>
+Real-time financial intelligence for your codebase.
 
-<p> Real-time financial intelligence for your codebase. </p>
+🥇 First place at DeltaHacks 2026
 
-![GitHub stars](https://img.shields.io/github/stars/dwseoh/Quota?style=social)
-![GitHub forks](https://img.shields.io/github/forks/dwseoh/Quota?style=social)
-![GitHub repo size](https://img.shields.io/github/repo-size/dwseoh/Quota)
-![GitHub top language](https://img.shields.io/github/languages/top/dwseoh/Quota)
-![GitHub last commit](https://img.shields.io/github/last-commit/dwseoh/Quota?color=red)
-
-
+[![GitHub stars](https://img.shields.io/github/stars/dwseoh/Quota?style=social)](https://github.com/dwseoh/Quota)
+[![GitHub forks](https://img.shields.io/github/forks/dwseoh/Quota?style=social)](https://github.com/dwseoh/Quota/network/members)
 
 </div>
 
 ---
 
-> Don't let hidden tech debts become a surprise bill.
+**Don't let hidden tech debt become a surprise bill.**
 
-Quota solves that. It allows developers to track and optimize resource costs like APIs, databases, and cloud infrastructure directly within the engineering workflow.
+Quota tracks and optimizes resource costs—APIs, databases, and cloud infrastructure—directly within your engineering workflow. By surfacing financial impact _before_ shipping, Quota prevents budget overruns and ensures efficient scaling.
 
-By surfacing resource impact _before_ shipping, Quota prevents budget overruns and ensures efficient scaling.
+[Watch the Demo](https://youtu.be/SUyDS37U6A0)
 
-Watch the demo: https://youtu.be/SUyDS37U6A0
+[View the Devpost](https://devpost.com/software/quota-fg4pzi)
 
 ## System Workflow
 
@@ -34,35 +29,35 @@ Watch the demo: https://youtu.be/SUyDS37U6A0
 
 ### VS Code Extension
 
-Transforms the editor into a financial control center.
+Real-time cost tracking and optimization directly in your editor.
 
-- **Key Metrics**: Live dashboard displays the cost origins and calculated value throughout the codebase, allowing you to fix it immediately.
-- **Real-Time Cost Heatmaps**: Editor decorations highlight high-cost code blocks (e.g., heavy DB queries or legacy LLM calls) for immediate optimization.
-- **One-Click Optimization**: Auto-detects inefficient resource patterns and suggests one-click refactors to cheaper alternatives.
-- **Bankruptcy Prevention**: Live dashboard projects monthly burn rates based on user scale, alerting you before budget thresholds are breached.
-- **Intelligent Classification**: Parses and prices resource usage across complex codebases using AST analysis.
+- **Cost Heatmaps**: Highlights high-cost code blocks (DB queries, LLM calls) for immediate optimization.
+- **Optimization Suggestions**: Auto-detects inefficient patterns and suggests methods (e.g. caching, batch processing, change cloud provider, etc.)
+- **One-Click Fixes**: Auto-detects inefficient patterns and suggests cheaper alternatives.
+- **Budget Alerts**: Live dashboard projects monthly burn rates and alerts you before reaching thresholds.
+- **Smart Analysis**: Uses AST parsing and Gemini AI to classify and price resource usage.
 
-### Web Sandbox
+### Web Dashboard
 
-Platform for architectural planning and cost forecasting.
+Visual architecture planning and cost forecasting.
 
 - **Architecture Designer**: Drag-and-drop canvas for prototyping systems with built-in cost projections.
-- **Predictive Pricing**: Estimates cloud and AI costs for designs before implementation.
-- **AI Architect Assistant**: Intelligent agent that optimizes designs for latency and cost.
-- **AI Visualization**: Automatically generates and visualizes interactive system architecture graphs from high-level descriptions.
+- **AI Assistant**: Intelligent agent that optimizes designs for latency and cost.
+- **Architecture Generation**: Automatically builds interactive system graphs from high-level descriptions.
 
 ## Tech Stack
 
-- **Core**: TypeScript, Python (FastAPI), Node.js, Go
-- **AI**: Google Gemini Pro, Tree-sitter, LangChain (RAG)
-- **Frontend**: Next.js, React Flow, Tailwind CSS
-- **Data**: MongoDB, Vector embeddings (FAISS)
+### VS Code Extension
 
-## Design Process
+- TypeScript
+- Tree-sitter (AST parsing)
 
-![Initial Sketch](assets/sketch.jpg)
+### Web Dashboard
 
-*From napkin sketch to production: The initial concept that evolved into Quota's architecture.*
+- **Frontend**: Next.js, React Flow, Tailwind CSS, Zustand
+- **Backend**: Python (FastAPI), LangChain (RAG)
+- **Database**: MongoDB, FAISS (Vector Store)
+- **AI**: Google Gemini (Architecture manipulation & assistance)
 
 ## Quick Start
 
@@ -72,9 +67,9 @@ Platform for architectural planning and cost forecasting.
 cd vscode-extension
 npm install
 npm run compile
-code .
-# press F5 to launch
 ```
+
+then press `F5` in VS Code to launch
 
 ### 2. Web Dashboard
 
@@ -94,3 +89,7 @@ cd web-dashboard/frontend
 npm install
 npm run dev
 ```
+
+## Web sandbox design process
+
+![Initial Sketch](assets/sketch.jpg)
