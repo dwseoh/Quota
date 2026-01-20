@@ -21,10 +21,6 @@ Quota tracks and optimizes resource costs—APIs, databases, and cloud infrastru
 
 [View the Devpost](https://devpost.com/software/quota-fg4pzi)
 
-## System Workflow
-
-![Quota Workflow](assets/workflow.jpg)
-
 ## Key Features
 
 ### VS Code Extension
@@ -58,6 +54,16 @@ Visual architecture planning and cost forecasting.
 - **Backend**: Python (FastAPI), LangChain (RAG)
 - **Database**: MongoDB, FAISS (Vector Store)
 - **AI**: Google Gemini (Architecture manipulation & assistance)
+
+## How it works
+
+### Web sandbox workflow
+
+![](assets/sandbox_flow.png)
+
+### VS Code extension workflow
+
+![](assets/vscode_flow.png)
 
 ## Quick Start
 
