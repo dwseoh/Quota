@@ -112,3 +112,11 @@ export const CDK_SIZE_MAP: Record<string, string> = {
     XLARGE: 'xlarge', XLARGE2: '2xlarge', XLARGE4: '4xlarge',
     XLARGE8: '8xlarge', XLARGE16: '16xlarge', XLARGE24: '24xlarge', XLARGE32: '32xlarge',
 };
+
+// dynamodb provisioned capacity (per unit per month = per unit/hour * 730h, us-east-1)
+export const DYNAMODB_WCU_MONTHLY = 0.00065 * 730; // ~$0.47/WCU/month
+export const DYNAMODB_RCU_MONTHLY = 0.00013 * 730; // ~$0.09/RCU/month
+
+// kubernetes rough compute cost (average across instance types, us-east-1 on-demand)
+export const K8S_VCPU_MONTHLY  = 35;  // ~$35/vCPU/month
+export const K8S_GB_MEM_MONTHLY = 4.4; // ~$4.40/GB memory/month

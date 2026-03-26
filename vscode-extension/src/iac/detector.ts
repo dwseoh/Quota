@@ -7,6 +7,8 @@ import {
     EC2_COSTS, RDS_COSTS, ELASTICACHE_COSTS,
     NAT_GATEWAY_BASE_MONTHLY, fargateMonthly,
     CDK_CLASS_MAP, CDK_SIZE_MAP,
+    DYNAMODB_WCU_MONTHLY, DYNAMODB_RCU_MONTHLY,
+    K8S_VCPU_MONTHLY, K8S_GB_MEM_MONTHLY,
 } from './price_table';
 
 // ---- helpers ----------------------------------------------------------------
@@ -442,23 +444,220 @@ function extractPulumiEc2Type(lines: string[], startIdx: number): string | null 
     return null;
 }
 
+// ---- serverless framework parser --------------------------------------------
+
+// parse cpu string to fractional vcpu: "500m" → 0.5, "1" → 1.0
+function parseCpuVcpu(s: string): number {
+    const t = s.trim().replace(/"/g, '');
+    if (t.endsWith('m')) return parseInt(t) / 1000;
+    return parseFloat(t) || 0;
+}
+
+// parse memory string to GB: "512Mi" → 0.5, "2Gi" → 2.0, "256M" → 0.256
+function parseMemGb(s: string): number {
+    const t = s.trim().replace(/"/g, '');
+    if (t.endsWith('Gi')) return parseFloat(t);
+    if (t.endsWith('Mi')) return parseFloat(t) / 1024;
+    if (t.endsWith('G'))  return parseFloat(t);
+    if (t.endsWith('M'))  return parseFloat(t) / 1024;
+    if (t.endsWith('Ki')) return parseFloat(t) / (1024 * 1024);
+    return parseFloat(t) / (1024 ** 3); // assume bytes
+}
+
+function isServerlessFile(filePath: string, content: string): boolean {
+    const base = filePath.split('/').pop() || '';
+    if (/^serverless\.(yml|yaml)$/.test(base)) return true;
+    // also match if content has the serverless framework shape
+    return /^service:\s*\S/m.test(content) && /^functions:/m.test(content);
+}
+
+function analyzeServerless(content: string, filePath: string): OptimizationSuggestion[] {
+    const suggestions: OptimizationSuggestion[] = [];
+    const lines = content.split('\n');
+
+    let inFunctions = false;
+    let inResources = false;
+    let functionCount = 0;
+    let functionSectionLine = 0;
+
+    // dynamodb table accumulator
+    interface DynamoTable { line: number; billingMode: string; rcu: number; wcu: number; }
+    let currentTable: DynamoTable | null = null;
+
+    const flushTable = () => {
+        if (!currentTable) return;
+        const t = currentTable;
+        currentTable = null;
+        if (t.billingMode === 'PAY_PER_REQUEST' || t.billingMode === 'ON_DEMAND') {
+            suggestions.push(makeSuggestion(
+                `iac-sls-dynamo-ondemand-${filePath}-${t.line}`, filePath, t.line,
+                'dynamodb on-demand table',
+                'pay-per-request billing — cost depends on read/write volume. negligible at low scale, can spike unexpectedly.',
+                null,
+            ));
+        } else {
+            // provisioned — has a fixed monthly cost
+            const cost = t.rcu * DYNAMODB_RCU_MONTHLY + t.wcu * DYNAMODB_WCU_MONTHLY;
+            suggestions.push(makeSuggestion(
+                `iac-sls-dynamo-provisioned-${filePath}-${t.line}`, filePath, t.line,
+                `dynamodb provisioned: ${t.rcu} rcu / ${t.wcu} wcu — $${cost.toFixed(2)}/mo`,
+                `provisioned throughput billed 24/7 regardless of traffic. consider on-demand if traffic is unpredictable.`,
+                cost,
+            ));
+        }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        const indent = line.search(/\S/);
+        if (indent < 0) continue;
+
+        // top-level section changes
+        if (indent === 0 && trimmed.endsWith(':')) {
+            flushTable();
+            inFunctions = trimmed === 'functions:';
+            inResources = trimmed === 'resources:';
+            if (inFunctions) functionSectionLine = i + 1;
+            continue;
+        }
+
+        // count lambda functions: indent-2 keys directly under 'functions:'
+        if (inFunctions && indent === 2 && /^\w[\w-]*:\s*$/.test(trimmed)) {
+            functionCount++;
+        }
+
+        // detect dynamodb table type declaration
+        if (inResources && /Type:\s*AWS::DynamoDB::Table/.test(trimmed)) {
+            flushTable();
+            currentTable = { line: i + 1, billingMode: 'PROVISIONED', rcu: 5, wcu: 5 };
+            continue;
+        }
+
+        if (currentTable) {
+            const billingM = trimmed.match(/BillingMode:\s*(\w+)/);
+            if (billingM) currentTable.billingMode = billingM[1].toUpperCase();
+            const rcuM = trimmed.match(/ReadCapacityUnits:\s*(\d+)/);
+            if (rcuM) currentTable.rcu = parseInt(rcuM[1]);
+            const wcuM = trimmed.match(/WriteCapacityUnits:\s*(\d+)/);
+            if (wcuM) currentTable.wcu = parseInt(wcuM[1]);
+        }
+    }
+
+    flushTable();
+
+    if (functionCount > 0) {
+        suggestions.push(makeSuggestion(
+            `iac-sls-functions-${filePath}`, filePath, functionSectionLine,
+            `serverless: ${functionCount} lambda function${functionCount > 1 ? 's' : ''}`,
+            'aws lambda: first 1m requests/mo free, then $0.20/million + compute time. negligible at low scale.',
+            null,
+        ));
+    }
+
+    return suggestions;
+}
+
+// ---- kubernetes yaml parser -------------------------------------------------
+
+function isKubernetesFile(content: string): boolean {
+    return /^apiVersion:\s*\S/m.test(content) && /^kind:\s*\S/m.test(content);
+}
+
+const K8S_WORKLOAD_KINDS = new Set(['Deployment', 'StatefulSet', 'DaemonSet', 'Job', 'CronJob']);
+
+function analyzeKubernetes(content: string, filePath: string): OptimizationSuggestion[] {
+    const suggestions: OptimizationSuggestion[] = [];
+
+    // handle multi-document yaml (split on ---)
+    const docs = content.split(/^---[ \t]*$/m);
+    let charOffset = 0;
+
+    for (const doc of docs) {
+        const docLines = doc.split('\n');
+
+        const kindMatch = doc.match(/^kind:\s*(\w+)/m);
+        if (!kindMatch || !K8S_WORKLOAD_KINDS.has(kindMatch[1])) {
+            charOffset += doc.length + 4; // 4 = '---\n'
+            continue;
+        }
+
+        const kind = kindMatch[1];
+        const nameMatch = doc.match(/^  name:\s*(.+)/m);
+        const workloadName = nameMatch ? nameMatch[1].trim() : kind.toLowerCase();
+
+        const replicasMatch = doc.match(/replicas:\s*(\d+)/);
+        const replicas = replicasMatch ? parseInt(replicasMatch[1]) : 1;
+
+        // find the line number of the kind declaration within the full file
+        const kindLineInDoc = doc.substring(0, doc.indexOf(kindMatch[0])).split('\n').length;
+        const linesBefore = content.substring(0, charOffset).split('\n').length;
+        const kindLine = linesBefore + kindLineInDoc;
+
+        // find resource requests — scan for 'requests:' block
+        const cpuMatch    = doc.match(/requests:[^\n]*\n(?:[ \t]+[^\n]+\n)*?[ \t]+cpu:\s*([^\n#]+)/);
+        const memMatch    = doc.match(/requests:[^\n]*\n(?:[ \t]+[^\n]+\n)*?[ \t]+memory:\s*([^\n#]+)/);
+        // also handle same-line or reversed order
+        const cpuMatch2   = doc.match(/[ \t]+cpu:\s*([^\n#]+)/);
+        const memMatch2   = doc.match(/[ \t]+memory:\s*([^\n#]+)/);
+
+        const cpuStr = (cpuMatch?.[1] || cpuMatch2?.[1] || '').trim();
+        const memStr = (memMatch?.[1] || memMatch2?.[1] || '').trim();
+
+        if (!cpuStr && !memStr) {
+            charOffset += doc.length + 4;
+            continue;
+        }
+
+        const vcpuPerReplica = cpuStr ? parseCpuVcpu(cpuStr) : 0;
+        const memGbPerReplica = memStr ? parseMemGb(memStr) : 0;
+        const costPerReplica = vcpuPerReplica * K8S_VCPU_MONTHLY + memGbPerReplica * K8S_GB_MEM_MONTHLY;
+        const totalCost = costPerReplica * replicas;
+
+        const cpuLabel = vcpuPerReplica > 0 ? `${vcpuPerReplica} vcpu` : '';
+        const memLabel = memGbPerReplica > 0 ? `${memGbPerReplica.toFixed(2).replace(/\.?0+$/, '')} gb` : '';
+        const resourceLabel = [cpuLabel, memLabel].filter(Boolean).join(' / ');
+
+        suggestions.push(makeSuggestion(
+            `iac-k8s-${kind}-${workloadName}-${filePath}`, filePath, kindLine,
+            `${kind.toLowerCase()} ${workloadName}: ${replicas}× (${resourceLabel}) — $${totalCost.toFixed(2)}/mo`,
+            `estimated monthly compute for ${replicas} replica${replicas > 1 ? 's' : ''}. actual cost depends on node type and cloud provider.`,
+            totalCost,
+        ));
+
+        charOffset += doc.length + 4;
+    }
+
+    return suggestions;
+}
+
 // ---- detector class ---------------------------------------------------------
 
 export class IacDetector implements OptimizationDetector {
     id = 'iac-cost-detector';
 
-    // 'tf' matches .tf files (extension.ts maps languageId as ext for unknown types)
-    targetFileTypes = ['typescript', 'javascript', 'tf'];
+    // 'tf'/'yml'/'yaml' match by languageId (extension.ts maps ext → languageId for unknown types)
+    targetFileTypes = ['typescript', 'javascript', 'tf', 'yml', 'yaml'];
 
     async analyze(context: FileContext): Promise<OptimizationSuggestion[]> {
-        const ext = context.uri.fsPath.split('.').pop() || '';
+        const filePath = context.uri.fsPath;
+        const ext = filePath.split('.').pop() || '';
 
         if (ext === 'tf') {
-            return analyzeTerraform(context.content, context.uri.fsPath);
+            return analyzeTerraform(context.content, filePath);
         }
 
         if (ext === 'ts' || ext === 'tsx' || ext === 'js' || ext === 'jsx') {
-            return analyzeCdkPulumi(context.content, context.uri.fsPath);
+            return analyzeCdkPulumi(context.content, filePath);
+        }
+
+        if (ext === 'yml' || ext === 'yaml') {
+            if (isServerlessFile(filePath, context.content)) {
+                return analyzeServerless(context.content, filePath);
+            }
+            if (isKubernetesFile(context.content)) {
+                return analyzeKubernetes(context.content, filePath);
+            }
         }
 
         return [];
