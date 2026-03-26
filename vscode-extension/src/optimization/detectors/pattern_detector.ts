@@ -49,35 +49,6 @@ export class PatternDetector implements OptimizationDetector {
             fileExtensions: ['.ts', '.js']
         },
 
-        // --- llm ---
-        {
-            id: 'legacy-gpt4-32k',
-            regex: /["']gpt-4-32k["']/g,
-            title: 'legacy model: gpt-4-32k',
-            message: 'gpt-4-32k is deprecated and far more expensive than gpt-4o. switch to gpt-4o or gpt-4o-mini.',
-            severity: 'warning',
-            costImpact: 'High',
-            fileExtensions: ['.ts', '.js', '.json']
-        },
-        {
-            id: 'legacy-davinci',
-            regex: /["']text-davinci-00[23]["']/g,
-            title: 'legacy model: text-davinci',
-            message: 'davinci models are deprecated. switch to gpt-4o-mini for most tasks.',
-            severity: 'warning',
-            costImpact: 'Medium',
-            fileExtensions: ['.ts', '.js', '.json']
-        },
-        {
-            id: 'anthropic-prompt-caching',
-            regex: /\.messages\.create\s*\(/g,
-            title: 'consider anthropic prompt caching',
-            message: 'if this call repeats large context (system prompt, docs), add cache_control headers to cut costs up to 90% on repeated tokens.',
-            severity: 'info',
-            costImpact: 'Medium',
-            fileExtensions: ['.ts', '.js']
-        },
-
         // --- ci/cd ---
         {
             id: 'github-large-runner',
@@ -123,21 +94,6 @@ export class PatternDetector implements OptimizationDetector {
                 const startPos = this.getLineCol(context.content, startIdx);
                 const endPos = this.getLineCol(context.content, endIdx);
 
-                let quickFix = undefined;
-                if (rule.id === 'legacy-gpt4') {
-                     quickFix = {
-                         targetFile: context.uri.fsPath,
-                         replacementRange: { startLine: startPos.line - 1, startColumn: startPos.col, endLine: endPos.line - 1, endColumn: endPos.col },
-                         replacementText: '"gpt-4o"'
-                     };
-                } else if (rule.id === 'legacy-davinci') {
-                     quickFix = {
-                         targetFile: context.uri.fsPath,
-                         replacementRange: { startLine: startPos.line - 1, startColumn: startPos.col, endLine: endPos.line - 1, endColumn: endPos.col },
-                         replacementText: '"gpt-3.5-turbo-instruct"'
-                     };
-                }
-
                 suggestions.push({
                     id: rule.id,
                     title: rule.title,
@@ -151,7 +107,6 @@ export class PatternDetector implements OptimizationDetector {
                         endLine: endPos.line,
                         endColumn: endPos.col
                     },
-                    quickFix
                 });
             }
         }
