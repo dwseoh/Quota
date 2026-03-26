@@ -40,7 +40,7 @@ export class CostDecorationProvider {
      * Update decorations for the active editor
      */
     public updateDecorations(editor: vscode.TextEditor, calls: llm_call[]) {
-        if (!editor || !calls) return;
+        if (!editor || !calls) {return;}
 
         const lowCostRanges: vscode.Range[] = [];
         const mediumCostRanges: vscode.Range[] = [];

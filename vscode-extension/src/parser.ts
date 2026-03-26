@@ -135,7 +135,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
 
     if (classification && classification.role === 'consumer') {
       const isLlm = classification.category === 'llm';
-      if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) continue;
+      if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) {continue;}
       const model = isLlm ? extractModelFromCode(unit.body) : null;
       const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
       const tokens = isLlm ? estimate_tokens(promptText) : 0;
@@ -173,7 +173,7 @@ export function extractModelFromCode(code: string): string | null {
     ];
     for (const pattern of patterns) {
         const match = code.match(pattern);
-        if (match) return match[1];
+        if (match) {return match[1];}
     }
     return null;
 }

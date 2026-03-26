@@ -26,7 +26,7 @@ export function estimate_tokens(text: string): number {
 // finds the best matching key in the pricing table — exact match first, then longest substring
 function findMatchingKey(model: string, table: pricing_table): string | undefined {
     const input = model.toLowerCase().trim();
-    if (table[input]) return input;
+    if (table[input]) {return input;}
     const matches = Object.keys(table).filter(key => input.includes(key));
     if (matches.length > 0) {
         matches.sort((a, b) => b.length - a.length);
@@ -37,10 +37,10 @@ function findMatchingKey(model: string, table: pricing_table): string | undefine
 
 // returns null if model is unknown — callers should show "unknown" rather than a fake estimate
 export function calculate_cost(model: string | null, tokens: number): number | null {
-    if (!model) return null;
+    if (!model) {return null;}
     const table = getPricing();
     const key = findMatchingKey(model, table);
-    if (!key) return null;
+    if (!key) {return null;}
     return (tokens / 1000) * table[key].input;
 }
 
@@ -57,10 +57,10 @@ export function get_cost_breakdown(
     input_tokens: number,
     output_tokens: number = 0
 ): cost_breakdown | null {
-    if (!model) return null;
+    if (!model) {return null;}
     const table = getPricing();
     const key = findMatchingKey(model, table);
-    if (!key) return null;
+    if (!key) {return null;}
     const p = table[key];
     const input_cost = (input_tokens / 1000) * p.input;
     const output_cost = (output_tokens / 1000) * p.output;

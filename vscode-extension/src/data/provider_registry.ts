@@ -189,14 +189,14 @@ export function extractPackageFromImport(line: string): string | null {
 
     // ts/js: import ... from 'pkg' or require('pkg') or import('pkg')
     const quotedMatch = trimmed.match(/['"]([^'"]+)['"]/);
-    if (quotedMatch) return quotedMatch[1];
+    if (quotedMatch) {return quotedMatch[1];}
 
     // python: from pkg.sub import ... or import pkg.sub
     const fromMatch = trimmed.match(/^from\s+([\w.]+)/);
-    if (fromMatch) return fromMatch[1];
+    if (fromMatch) {return fromMatch[1];}
 
     const importMatch = trimmed.match(/^import\s+([\w.]+)/);
-    if (importMatch) return importMatch[1];
+    if (importMatch) {return importMatch[1];}
 
     return null;
 }
@@ -286,24 +286,24 @@ export function lookupProvider(pkg: string): ProviderInfo | null {
     const lower = pkg.toLowerCase();
 
     // js exact match
-    if (JS_PACKAGES[lower]) return JS_PACKAGES[lower];
+    if (JS_PACKAGES[lower]) {return JS_PACKAGES[lower];}
 
     // catch-all for known llm sdk families
     for (const prefix of LLM_FAMILY_PREFIXES) {
-        if (lower.startsWith(prefix)) return { provider: lower, category: 'llm' };
+        if (lower.startsWith(prefix)) {return { provider: lower, category: 'llm' };}
     }
 
     // js prefix match (handles @aws-sdk/client-s3, @google-cloud/storage, etc.)
     for (const key of Object.keys(JS_PACKAGES)) {
-        if (lower.startsWith(key)) return JS_PACKAGES[key];
+        if (lower.startsWith(key)) {return JS_PACKAGES[key];}
     }
 
     // python full dotted name (e.g. google.generativeai)
-    if (PYTHON_MODULES[lower]) return PYTHON_MODULES[lower];
+    if (PYTHON_MODULES[lower]) {return PYTHON_MODULES[lower];}
 
     // python root module fallback
     const root = lower.split('.')[0];
-    if (PYTHON_MODULES[root]) return PYTHON_MODULES[root];
+    if (PYTHON_MODULES[root]) {return PYTHON_MODULES[root];}
 
     return null;
 }

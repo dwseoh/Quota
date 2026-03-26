@@ -20,7 +20,7 @@ export class CostCodeActionProvider implements vscode.CodeActionProvider {
         const suggestions = await manager.analyze(document);
 
         for (const suggestion of suggestions) {
-            if (!suggestion.quickFix) continue;
+            if (!suggestion.quickFix) {continue;}
 
             const fixRange = new vscode.Range(
                 suggestion.location.startLine - 1,

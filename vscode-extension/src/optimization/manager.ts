@@ -30,7 +30,7 @@ export class OptimizationManager {
         const fileName = input.uri.fsPath;
         const applicableDetectors = this.getDetectorsForFile(input.languageId, fileName);
 
-        if (applicableDetectors.length === 0) return [];
+        if (applicableDetectors.length === 0) {return [];}
 
         const results = await Promise.all(
             applicableDetectors.map(detector =>

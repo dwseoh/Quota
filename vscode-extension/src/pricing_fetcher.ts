@@ -53,7 +53,7 @@ function fetchFromNetwork(): Promise<pricing_table> {
 // loads pricing from disk cache if fresh, otherwise fetches from network.
 // falls back to stale cache or hardcoded fallback if network fails.
 export async function loadPricing(globalStoragePath: string): Promise<pricing_table> {
-    if (cachedPricing) return cachedPricing;
+    if (cachedPricing) {return cachedPricing;}
 
     const cachePath = path.join(globalStoragePath, CACHE_FILENAME);
 

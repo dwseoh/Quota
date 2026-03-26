@@ -110,7 +110,7 @@ export class LoopDetector implements OptimizationDetector {
 
             // Keep track of the current loop node we are inside
             const walk = (node: any, currentLoop: any | null) => {
-                if (!node || typeof node !== 'object') return;
+                if (!node || typeof node !== 'object') {return;}
 
                 // Check for loops
                 const isLoop = node.type === 'ForStatement' || 
@@ -152,8 +152,8 @@ export class LoopDetector implements OptimizationDetector {
     }
 
     private getCallName(node: any): string {
-        if (!node) return '';
-        if (node.type === 'Identifier') return node.name;
+        if (!node) {return '';}
+        if (node.type === 'Identifier') {return node.name;}
         if (node.type === 'MemberExpression' && node.property.type === 'Identifier') {
             return `${this.getCallName(node.object)}.${node.property.name}`;
         }
@@ -233,8 +233,8 @@ export class LoopDetector implements OptimizationDetector {
                         timeout: 10000,
                         maxBuffer: 2 * 1024 * 1024,
                     }, (err, out) => {
-                        if (err) reject(err);
-                        else resolve(out);
+                        if (err) {reject(err);}
+                        else {resolve(out);}
                     });
                 });
 
@@ -284,7 +284,7 @@ export class LoopDetector implements OptimizationDetector {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trim = line.trim();
-            if (!trim || trim.startsWith('#')) continue;
+            if (!trim || trim.startsWith('#')) {continue;}
 
             const indent = line.search(/\S/);
             loopIndentLevels = loopIndentLevels.filter(l => l.indent < indent);

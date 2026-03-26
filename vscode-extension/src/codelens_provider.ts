@@ -20,7 +20,7 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Promise<vscode.CodeLens[]> {
-    if (token.isCancellationRequested) return [];
+    if (token.isCancellationRequested) {return [];}
 
     // 1. Existing functionality: Cost tracking
     const detected_calls = parse_llm_calls(document);
