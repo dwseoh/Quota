@@ -50,7 +50,7 @@ export class PatternDetector implements OptimizationDetector {
         },
         {
             // .find({}) or .find() — mongo fetch without projection
-            id: 'mongo-no-projection',
+            id: 'mongo-projection',
             regex: /\.find\(\s*(?:\{\s*\})?\s*\)(?!\s*\.(?:project|select)\s*\()/g,
             title: 'mongodb query without projection',
             message: 'fetching full documents is wasteful when you only need a few fields. pass a projection (second arg) to limit returned data.',
@@ -79,6 +79,26 @@ export class PatternDetector implements OptimizationDetector {
             severity: 'critical',
             costImpact: 'Critical',
             fileExtensions: ['.tf']
+        },
+
+        // --- llm ---
+        {
+            id: 'anthropic-prompt-caching',
+            regex: /anthropic\.messages\.create\s*\(/g,
+            title: 'anthropic messages api',
+            message: 'consider prompt caching for repeated system prompts to reduce token costs.',
+            severity: 'info',
+            costImpact: 'Medium',
+            fileExtensions: ['.ts', '.js']
+        },
+        {
+            id: 'legacy-gpt4',
+            regex: /gpt-4-32k/g,
+            title: 'legacy gpt-4 context window',
+            message: 'gpt-4-32k is an older pricing tier; newer models may offer better cost/performance.',
+            severity: 'info',
+            costImpact: 'Medium',
+            fileExtensions: ['.ts', '.js']
         },
     ];
 

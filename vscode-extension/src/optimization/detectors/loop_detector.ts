@@ -71,7 +71,10 @@ export class LoopDetector implements OptimizationDetector {
         'ChatCompletion.create', 'Completion.create',   // python old openai sdk
         // http clients — ts/js
         'axios.get', 'axios.post', 'axios.put', 'axios.delete',
-        'fetch(',
+        // match call name `fetch` (not `fetch(` — getCallName has no parens)
+        'fetch',
+        // mongoose-style chain
+        'users.find',
         // http clients — python
         'requests.get', 'requests.post', 'requests.put', 'requests.delete',
         'httpx.get', 'httpx.post', 'httpx.put', 'httpx.delete',
@@ -151,7 +154,7 @@ export class LoopDetector implements OptimizationDetector {
     private getCallName(node: any): string {
         if (!node) return '';
         if (node.type === 'Identifier') return node.name;
-        if (node.type === 'MemberExpression') {
+        if (node.type === 'MemberExpression' && node.property.type === 'Identifier') {
             return `${this.getCallName(node.object)}.${node.property.name}`;
         }
         return '';
@@ -170,7 +173,13 @@ export class LoopDetector implements OptimizationDetector {
         // Check against patterns
         if (callName) {
             const lowerName = callName.toLowerCase();
-            const match = this.costPatterns.some(pattern => lowerName.includes(pattern.toLowerCase()));
+            const match = this.costPatterns.some(pattern => {
+                const p = pattern.toLowerCase();
+                if (p === 'fetch') {
+                    return lowerName === 'fetch' || lowerName.endsWith('.fetch');
+                }
+                return lowerName.includes(p);
+            });
             
             if (match) {
                 // Check if the loop body contains cache logic

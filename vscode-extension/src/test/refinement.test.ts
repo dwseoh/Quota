@@ -21,7 +21,7 @@ suite('Optimization Refinements', () => {
                 for (const item of items) {
                     // We have a cache check here
                     if (await redis.get(item.id)) continue;
-                    openai.chat.completions.create({...});
+                    openai.chat.completions.create({ model: 'gpt-4' });
                 }
             }
         `;
@@ -41,8 +41,8 @@ suite('Optimization Refinements', () => {
             const items = [];
             export async function main() {
                 for (const item of items) {
-                    // No cache here
-                    await openai.chat.completions.create({...});
+                    // costly path
+                    await openai.chat.completions.create({ model: 'gpt-4' });
                 }
             }
         `;
