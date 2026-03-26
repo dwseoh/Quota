@@ -96,6 +96,8 @@ faiss_index/
 .parcel-cache/
 .eslintcache
 .stylelintcache
+*.md
+!README.md
 
 # --- parser cache ---
 .delta-analytics-config/
@@ -106,5 +108,3 @@ test-analyze.js
 !src/test/*.test.ts
 *__pycache__
 /__pycache__
-
-./web-dashboard/backend/deployment-guide.md
