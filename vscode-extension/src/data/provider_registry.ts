@@ -113,6 +113,52 @@ export const JS_PACKAGES: Record<string, ProviderInfo> = {
     '@googlemaps/google-maps-services-js': { provider: 'google-maps', category: 'maps' },
 };
 
+// java package prefixes → provider info
+// java imports are dotted class paths (e.g. com.openai.OpenAIClient) — prefix match on root package
+export const JAVA_PACKAGES: Record<string, ProviderInfo> = {
+    // llm
+    'com.openai':                   { provider: 'openai',      category: 'llm' },
+    'com.anthropic':                { provider: 'anthropic',   category: 'llm' },
+    'dev.langchain4j':              { provider: 'langchain',   category: 'llm' },
+    'com.google.cloud.vertexai':    { provider: 'vertex-ai',   category: 'llm' },
+
+    // payment
+    'com.stripe':                   { provider: 'stripe',      category: 'payment' },
+    'com.braintreegateway':         { provider: 'braintree',   category: 'payment' },
+    'com.paypal':                   { provider: 'paypal',      category: 'payment' },
+
+    // database
+    'com.mongodb':                  { provider: 'mongodb',     category: 'database' },
+    'org.springframework.data':     { provider: 'mongodb',     category: 'database' },
+    'io.github.jan-tennant.supabase': { provider: 'supabase',  category: 'database' },
+    'redis.clients':                { provider: 'redis',       category: 'database' },
+    'io.lettuce':                   { provider: 'redis',       category: 'database' },
+    'org.postgresql':               { provider: 'postgres',    category: 'database' },
+    'com.mysql':                    { provider: 'mysql',       category: 'database' },
+
+    // communication
+    'com.twilio':                   { provider: 'twilio',      category: 'communication' },
+    'com.sendgrid':                 { provider: 'sendgrid',    category: 'communication' },
+
+    // cloud
+    'software.amazon.awssdk':       { provider: 'aws',         category: 'cloud' },
+    'com.amazonaws':                { provider: 'aws',         category: 'cloud' },
+    'com.google.cloud':             { provider: 'gcp',         category: 'cloud' },
+    'com.azure':                    { provider: 'azure',       category: 'cloud' },
+
+    // search / vector
+    'io.pinecone':                  { provider: 'pinecone',    category: 'search' },
+    'co.elastic.clients':           { provider: 'elasticsearch', category: 'search' },
+    'org.elasticsearch.client':     { provider: 'elasticsearch', category: 'search' },
+
+    // monitoring
+    'io.sentry':                    { provider: 'sentry',      category: 'monitoring' },
+    'com.datadoghq':                { provider: 'datadog',     category: 'monitoring' },
+
+    // auth
+    'com.auth0':                    { provider: 'auth0',       category: 'auth' },
+};
+
 // go module paths → provider info
 // prefix entries (e.g. 'github.com/aws/aws-sdk-go') match any subpackage import
 export const GO_PACKAGES: Record<string, ProviderInfo> = {
@@ -343,6 +389,11 @@ export function lookupProvider(pkg: string): ProviderInfo | null {
     // python root module fallback
     const root = lower.split('.')[0];
     if (PYTHON_MODULES[root]) {return PYTHON_MODULES[root];}
+
+    // java prefix match (e.g. com.openai.OpenAIClient → com.openai)
+    for (const key of Object.keys(JAVA_PACKAGES)) {
+        if (pkg.startsWith(key)) {return JAVA_PACKAGES[key];}
+    }
 
     // go exact match
     if (GO_PACKAGES[pkg]) {return GO_PACKAGES[pkg];}

@@ -18,6 +18,7 @@ build/
 vscode-extension/out/
 vscode-extension/*.vsix
 vscode-extension/.vscode/
+vscode-extension/wasm/
 vscode-extension/.delta-analytics-config/
 
 # --- environment variables ---

@@ -5,13 +5,14 @@ import * as path from 'path';
 import { execFile } from 'child_process';
 import { findPythonBin } from '../../ast_parser';
 import { findGoBin } from '../../ast_parser/go_parse';
+import { getJavaParser } from '../../ast_parser/java_parse';
 
 const PYTHON_LOOP_SCRIPT = path.join(__dirname, '../../../scripts/loop_detector_ast.py');
 const GO_LOOP_SCRIPT = path.join(__dirname, '../../../scripts/loop_detector_ast.go');
 
 export class LoopDetector implements OptimizationDetector {
     id = 'loop-detector';
-    targetFileTypes = ['typescript', 'javascript', 'python', 'go', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.go', '.tsx', '.jsx'];
+    targetFileTypes = ['typescript', 'javascript', 'python', 'go', 'java', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.go', '.java', '.tsx', '.jsx'];
 
     // costly operations that are unambiguously expensive inside a loop.
     // deliberately narrow — avoid generic names like 'get', 'put', 'find' that
@@ -40,12 +41,16 @@ export class LoopDetector implements OptimizationDetector {
     async analyze(context: FileContext, codeUnits?: CodeUnit[]): Promise<OptimizationSuggestion[]> {
         const isPython = context.languageId === 'python' || context.uri.fsPath.endsWith('.py');
         const isGo = context.languageId === 'go' || context.uri.fsPath.endsWith('.go');
+        const isJava = context.languageId === 'java' || context.uri.fsPath.endsWith('.java');
 
         if (isPython) {
             return this.analyzePython(context.uri.fsPath, context.content, context.uri.toString());
         }
         if (isGo) {
             return this.analyzeGo(context.uri.fsPath, context.content, context.uri.toString());
+        }
+        if (isJava) {
+            return this.analyzeJava(context.content, context.uri.toString());
         }
         return this.analyzeTypeScript(context.content, context.uri.toString());
     }
@@ -173,6 +178,65 @@ export class LoopDetector implements OptimizationDetector {
                     costImpact: hasCache ? 'Low' : 'High'
                 });
             }
+        }
+    }
+
+    /**
+     * analyze java using tree-sitter wasm — walks for/while/enhanced-for nodes for costly calls.
+     */
+    private async analyzeJava(content: string, fileUri: string): Promise<OptimizationSuggestion[]> {
+        const javaParser = await getJavaParser();
+        if (!javaParser) { return []; }
+
+        try {
+            const suggestions: OptimizationSuggestion[] = [];
+            const tree = javaParser.parse(content);
+            if (!tree) { return []; }
+
+            const LOOP_TYPES = new Set(['for_statement', 'while_statement', 'do_statement', 'enhanced_for_statement']);
+
+            const walk = (node: any, insideLoop: any | null) => {
+                const activeLoop = LOOP_TYPES.has(node.type) ? node : insideLoop;
+
+                if (activeLoop && node.type === 'method_invocation') {
+                    const nameNode = node.childForFieldName('name');
+                    const objectNode = node.childForFieldName('object');
+                    const callName = objectNode
+                        ? `${objectNode.text}.${nameNode?.text ?? ''}`
+                        : (nameNode?.text ?? '');
+
+                    if (callName) {
+                        const lowerName = callName.toLowerCase();
+                        const match = this.costPatterns.some(p => lowerName.includes(p.toLowerCase()));
+                        if (match) {
+                            const loopText = content.split('\n').slice(activeLoop.startPosition.row).join('\n');
+                            const hasCache = this.cachePatterns.some(p => loopText.toLowerCase().includes(p));
+                            const line = node.startPosition.row + 1;
+                            const col = node.startPosition.column;
+                            suggestions.push({
+                                id: `loop-cost-java-${line}`,
+                                title: hasCache ? 'Verify Cache Effectiveness' : 'Costly Operation in Loop',
+                                description: `Detected potential costly operation '${callName}' inside a loop. ` +
+                                    (hasCache
+                                        ? `It looks like you have some caching logic, but verify it effectively reduces calls.`
+                                        : `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`),
+                                severity: (hasCache ? 'info' : 'warning') as 'info' | 'warning',
+                                location: { fileUri, startLine: line, startColumn: col, endLine: line, endColumn: col + callName.length },
+                                costImpact: hasCache ? 'Low' : 'High',
+                            });
+                        }
+                    }
+                }
+
+                for (const child of node.children) {
+                    walk(child, activeLoop);
+                }
+            };
+
+            walk(tree.rootNode, null);
+            return suggestions;
+        } catch {
+            return [];
         }
     }
 

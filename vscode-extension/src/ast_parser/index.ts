@@ -9,6 +9,7 @@ import { parseTypeScriptFile } from './typescript_parse';
 import { parseFileWithVSCode } from './vscode_symbols';
 import { getVscode } from './vscode_lazy';
 import { parseGoFile } from './go_parse';
+import { parseJavaFile } from './java_parse';
 
 export { findPythonBin } from './python_parse';
 
@@ -21,6 +22,10 @@ export async function parseFile(filePath: string): Promise<CodeUnit[]> {
 
   if (ext === '.go') {
     return parseGoFile(filePath);
+  }
+
+  if (ext === '.java') {
+    return parseJavaFile(filePath);
   }
 
   if (getVscode()) {

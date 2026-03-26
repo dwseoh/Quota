@@ -3,7 +3,6 @@
   "displayName": "Quota",
   "description": "Track and optimize costs in your codebase",
   "version": "0.0.1",
-
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -13,7 +12,9 @@
   "activationEvents": [
     "onLanguage:python",
     "onLanguage:typescript",
-    "onLanguage:javascript"
+    "onLanguage:javascript",
+    "onLanguage:go",
+    "onLanguage:java"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -148,6 +149,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "build:wasm": "tree-sitter build --wasm node_modules/tree-sitter-java -o wasm/tree-sitter-java.wasm",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"
@@ -159,12 +161,15 @@
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.39.2",
+    "tree-sitter-cli": "^0.26.7",
+    "tree-sitter-java": "^0.23.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.52.0"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@typescript-eslint/parser": "^8.52.0",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "web-tree-sitter": "^0.26.7"
   }
 }
