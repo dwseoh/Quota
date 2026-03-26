@@ -7,6 +7,38 @@ import { initTreeSitter } from './treesitter_runtime';
 
 const JAVA_WASM = path.join(__dirname, '../../wasm/tree-sitter-java.wasm');
 
+// scan nearest pom.xml or build.gradle for dependency group ids.
+// walks up from the .java file's directory — group ids match JAVA_PACKAGES prefix keys.
+function scanJavaManifest(fromDir: string): string[] {
+  let dir = fromDir;
+  for (let i = 0; i < 8; i++) {
+    try {
+      const entries = fs.readdirSync(dir);
+
+      if (entries.includes('pom.xml')) {
+        const xml = fs.readFileSync(path.join(dir, 'pom.xml'), 'utf-8');
+        // extract all <groupId> values — project's own groupId won't match any provider
+        const matches = [...xml.matchAll(/<groupId>([^<]+)<\/groupId>/g)];
+        return matches.map(m => m[1].trim());
+      }
+
+      const gradle = entries.find(e => e === 'build.gradle' || e === 'build.gradle.kts');
+      if (gradle) {
+        const src = fs.readFileSync(path.join(dir, gradle), 'utf-8');
+        // matches: 'com.openai:openai-java:2.1.0' or "com.openai:openai-java:2.1.0"
+        const matches = [...src.matchAll(/['"]([a-zA-Z][\w.-]+:[^'"]+)['"]/g)];
+        // return only the group id (part before first colon)
+        return matches.map(m => m[1].split(':')[0]);
+      }
+    } catch { /* skip unreadable dirs */ }
+
+    const parent = path.dirname(dir);
+    if (parent === dir) { break; }
+    dir = parent;
+  }
+  return [];
+}
+
 let parser: Parser | null = null;
 let initPromise: Promise<void> | null = null;
 
@@ -49,7 +81,7 @@ export async function parseJavaFile(filePath: string): Promise<CodeUnit[]> {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
-    const imports = extractImports(content, '.java');
+    const imports = [...extractImports(content, '.java'), ...scanJavaManifest(path.dirname(filePath))];
     const tree = parser.parse(content);
     if (!tree) { return parseJavaFileBasic(filePath); }
     const units: CodeUnit[] = [];
@@ -113,7 +145,7 @@ function parseJavaFileBasic(filePath: string): CodeUnit[] {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
-    const imports = extractImports(content, '.java');
+    const imports = [...extractImports(content, '.java'), ...scanJavaManifest(path.dirname(filePath))];
     const units: CodeUnit[] = [];
     const basename = path.basename(filePath);
 
