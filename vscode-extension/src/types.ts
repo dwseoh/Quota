@@ -55,9 +55,9 @@ export interface ContextBundle {
 
 export interface ApiClassification {
   role: 'consumer' | 'provider' | 'none';
-  category: 'llm' | 'payment' | 'weather' | 'database' | 'other';
-  provider: string;        // e.g., "openai", "stripe", "aws"
-  confidence: number;      // 0-1
+  category: 'llm' | 'payment' | 'database' | 'communication' | 'cloud' | 'search' | 'auth' | 'monitoring' | 'maps' | 'other';
+  provider: string;
+  confidence: number;
 }
 
 export interface FileEntry {

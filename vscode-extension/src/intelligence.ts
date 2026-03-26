@@ -5,6 +5,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ContextBundle, ApiClassification } from './types';
+import { extractPackageFromImport, lookupProvider } from './data/provider_registry';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
@@ -39,30 +40,9 @@ export async function classifyApiUsage(
     bundle: ContextBundle,
     useQuickDetection: boolean = true
 ): Promise<ApiClassification> {
-    // Fast path: use regex-based detection
     if (useQuickDetection) {
-        const providers = detectProvidersQuick(bundle);
-
-        if (providers.length > 0) {
-            // Determine category based on provider
-            let category: 'llm' | 'payment' | 'database' | 'other' = 'other';
-            const provider = providers[0]; // Use first detected provider
-
-            if (['openai', 'anthropic', 'gemini'].includes(provider)) {
-                category = 'llm';
-            } else if (['stripe', 'paypal'].includes(provider)) {
-                category = 'payment';
-            } else if (['mongodb', 'postgresql', 'mysql'].includes(provider)) {
-                category = 'database';
-            }
-
-            return {
-                role: 'consumer',
-                category: category,
-                provider: provider,
-                confidence: 0.85 // High confidence for regex matches
-            };
-        }
+        const result = detectProvidersQuick(bundle);
+        if (result) return result;
     }
 
     // Return default if Gemini not initialized
@@ -238,38 +218,10 @@ export async function batchClassifyApis(
         return [];
     }
 
-    // Fast path: use quick detection for all bundles
     if (useQuickDetection) {
-        console.log(`Using quick regex detection for ${bundles.length} units (no API calls)...`);
         return bundles.map(bundle => {
-            const providers = detectProvidersQuick(bundle);
-
-            if (providers.length > 0) {
-                let category: 'llm' | 'payment' | 'database' | 'other' = 'other';
-                const provider = providers[0];
-
-                if (['openai', 'anthropic', 'gemini'].includes(provider)) {
-                    category = 'llm';
-                } else if (['stripe', 'paypal'].includes(provider)) {
-                    category = 'payment';
-                } else if (['mongodb', 'postgresql', 'mysql'].includes(provider)) {
-                    category = 'database';
-                }
-
-                return {
-                    role: 'consumer',
-                    category: category,
-                    provider: provider,
-                    confidence: 0.85
-                };
-            }
-
-            return {
-                role: 'none',
-                category: 'other',
-                provider: 'unknown',
-                confidence: 0
-            };
+            const result = detectProvidersQuick(bundle);
+            return result ?? { role: 'none', category: 'other', provider: 'unknown', confidence: 0 };
         });
     }
 
@@ -411,48 +363,25 @@ function parseBatchResponse(
     }
 }
 
-/**
- * Quick detection for common patterns (fallback/fast path)
- * Now simplified - just checks for obvious cases
- */
-export function detectProvidersQuick(bundle: ContextBundle): string[] {
-    const providers: string[] = [];
-    const imports = bundle.imports.toLowerCase();
+// detects providers by parsing import statements only — no body scanning to avoid false positives.
+// returns the first matched provider classification, or null if no known sdk is imported.
+export function detectProvidersQuick(bundle: ContextBundle): ApiClassification | null {
+    const importLines = bundle.imports.split('\n').filter(l => l.trim());
 
-    console.log(`🔎 Quick Detection - Imports: ${imports.substring(0, 200)}...`);
-
-    // Only check most common/obvious ones
-    const quickChecks: Record<string, string> = {
-        'openai': 'openai',
-        'anthropic': 'anthropic',
-        '@anthropic-ai/sdk': 'anthropic', // Anthropic SDK package name
-        '@google/generative': 'gemini',
-        'stripe': 'stripe',
-        'aws-sdk': 'aws',
-        '@aws-sdk': 'aws',
-        'mongodb': 'mongodb',
-        'axios': 'axios',
-        'firebase': 'firebase'
-    };
-
-    for (const [pattern, provider] of Object.entries(quickChecks)) {
-        // Check imports
-        if (imports.includes(pattern)) {
-            console.log(`  ✅ Detected via Import: ${provider} (pattern: ${pattern})`);
-            providers.push(provider);
-        }
-        
-        // Also check code body for direct usage (e.g. mock objects, require, or global usage)
-        if (bundle.code.toLowerCase().includes(pattern)) {
-             console.log(`  ✅ Detected via Code: ${provider} (pattern: ${pattern})`);
-             providers.push(provider);
+    for (const line of importLines) {
+        const pkg = extractPackageFromImport(line);
+        if (!pkg) continue;
+        const info = lookupProvider(pkg);
+        if (info) {
+            return {
+                role: 'consumer',
+                category: info.category,
+                provider: info.provider,
+                confidence: 0.9,
+            };
         }
     }
 
-    if (providers.length === 0) {
-        console.log(`  ❌ No providers detected in imports`);
-    }
-
-    return [...new Set(providers)];
+    return null;
 }
 
