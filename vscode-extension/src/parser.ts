@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';
 import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';
 import { parseFile, bundleContext } from './ast_parser';
-import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';
+import { initializeGemini } from './intelligence';
 import { hasLlmCallSite } from './data/provider_registry';
 import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';
 import { estimate_tokens, calculate_cost } from './cost_calculator';
