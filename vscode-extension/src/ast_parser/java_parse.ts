@@ -3,11 +3,9 @@ import * as path from 'path';
 import { Parser, Language, Node as TSNode } from 'web-tree-sitter';
 import { CodeUnit } from '../types';
 import { extractImports } from './imports';
+import { initTreeSitter } from './treesitter_runtime';
 
-const WASM_DIR = path.join(__dirname, '../../wasm');
-const JAVA_WASM = path.join(WASM_DIR, 'tree-sitter-java.wasm');
-// web-tree-sitter needs its own runtime wasm — it ships alongside the package
-const RUNTIME_WASM_DIR = path.join(__dirname, '../../node_modules/web-tree-sitter');
+const JAVA_WASM = path.join(__dirname, '../../wasm/tree-sitter-java.wasm');
 
 let parser: Parser | null = null;
 let initPromise: Promise<void> | null = null;
@@ -17,9 +15,7 @@ async function initParser(): Promise<void> {
   if (initPromise) { return initPromise; }
 
   initPromise = (async () => {
-    await Parser.init({
-      locateFile: () => path.join(RUNTIME_WASM_DIR, 'web-tree-sitter.wasm'),
-    });
+    await initTreeSitter();
     const Java = await Language.load(JAVA_WASM);
     parser = new Parser();
     parser.setLanguage(Java);
