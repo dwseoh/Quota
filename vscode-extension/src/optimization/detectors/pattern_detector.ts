@@ -18,103 +18,87 @@ export class PatternDetector implements OptimizationDetector {
     targetFileTypes = ['*', '.ts', '.js', '.py', '.yml', '.yaml', '.json', '.tf', '.tfvars'];
 
     private rules: PatternRule[] = [
-        // --- Database ---
+        // --- database ---
         {
+            // matches dynamodb client scan calls: docClient.scan(, ddb.scan(, dynamodb.scan(
             id: 'dynamodb-scan',
-            regex: /\.scan\s*\(/g,
-            title: 'Full Table Scan detected',
-            message: 'Avoid using .scan() operations on DynamoDB as they are expensive and slow. Use .query() with an index instead.',
+            regex: /(?:docClient|ddb|dynamodb|DynamoDB|DocumentClient)\s*(?:\.\s*\w+\s*)?\.\s*scan\s*\(/g,
+            title: 'dynamodb full table scan',
+            message: 'avoid .scan() on dynamodb — reads every item in the table, costs scale with table size. use .query() with an index instead.',
             severity: 'warning',
             costImpact: 'High',
-            fileExtensions: ['.ts', '.js', '.py', '.java']
+            fileExtensions: ['.ts', '.js']
         },
         {
             id: 'sql-select-all',
             regex: /SELECT\s+\*\s+FROM/gi,
-            title: 'Unoptimized SQL Query',
-            message: 'Avoid "SELECT *". explicitly select call columns to reduce data transfer costs.',
+            title: 'sql select *',
+            message: 'select * fetches all columns including large blobs. specify only the columns you need to reduce data transfer and rds read costs.',
             severity: 'info',
             costImpact: 'Low',
-            fileExtensions: ['.ts', '.js', '.py', '.sql', '.go']
+            fileExtensions: ['.ts', '.js', '.sql']
+        },
+        {
+            // .find({}) or .find() — mongo fetch without projection
+            id: 'mongo-no-projection',
+            regex: /\.find\(\s*(?:\{\s*\})?\s*\)(?!\s*\.(?:project|select)\s*\()/g,
+            title: 'mongodb query without projection',
+            message: 'fetching full documents is wasteful when you only need a few fields. pass a projection (second arg) to limit returned data.',
+            severity: 'info',
+            costImpact: 'Low',
+            fileExtensions: ['.ts', '.js']
         },
 
-        // --- LLM ---
+        // --- llm ---
         {
-            id: 'legacy-gpt4',
+            id: 'legacy-gpt4-32k',
             regex: /["']gpt-4-32k["']/g,
-            title: 'Legacy Expensive Model',
-            message: 'gpt-4-32k is significantly more expensive than gpt-4-turbo or gpt-4o. Consider upgrading.',
+            title: 'legacy model: gpt-4-32k',
+            message: 'gpt-4-32k is deprecated and far more expensive than gpt-4o. switch to gpt-4o or gpt-4o-mini.',
             severity: 'warning',
             costImpact: 'High',
-            fileExtensions: ['.ts', '.js', '.py', '.json']
+            fileExtensions: ['.ts', '.js', '.json']
         },
         {
             id: 'legacy-davinci',
-            regex: /["']text-davinci-003["']/g,
-            title: 'Depreciated Model',
-            message: 'Davinci models are deprecated and expensive. Switch to gpt-3.5-turbo-instruct or newer.',
+            regex: /["']text-davinci-00[23]["']/g,
+            title: 'legacy model: text-davinci',
+            message: 'davinci models are deprecated. switch to gpt-4o-mini for most tasks.',
             severity: 'warning',
-            costImpact: 'Medium'
+            costImpact: 'Medium',
+            fileExtensions: ['.ts', '.js', '.json']
+        },
+        {
+            id: 'anthropic-prompt-caching',
+            regex: /\.messages\.create\s*\(/g,
+            title: 'consider anthropic prompt caching',
+            message: 'if this call repeats large context (system prompt, docs), add cache_control headers to cut costs up to 90% on repeated tokens.',
+            severity: 'info',
+            costImpact: 'Medium',
+            fileExtensions: ['.ts', '.js']
         },
 
-        // --- Infrastructure (CI/CD, Cloud) ---
+        // --- ci/cd ---
         {
             id: 'github-large-runner',
-            regex: /runs-on:\s*.*(large|xlarge|2xlarge|gpu)/ig,
-            title: 'Expensive CI Runner',
-            message: 'Usage of large GitHub Actions runners detected. Verify if standard runners are sufficient.',
+            regex: /runs-on:\s*.*(?:large|xlarge|2xlarge|gpu)/ig,
+            title: 'expensive github actions runner',
+            message: 'large/xlarge runners cost 2-8x more than standard. verify the workload actually needs the extra cpu/memory.',
             severity: 'info',
             costImpact: 'Medium',
             fileExtensions: ['.yml', '.yaml']
         },
-        {
-            id: 'aws-gpu-instance',
-            regex: /instance_type\s*=\s*["'].*p[34].*["']/g,
-            title: 'Expensive GPU Instance',
-            message: 'P-series GPU instances are very expensive. Ensure this is necessary for your workload.',
-            severity: 'warning',
-            costImpact: 'Critical',
-            fileExtensions: ['.tf', '.tfvars']
-        },
-        {
-            id: 'vercel-pro-config',
-            regex: /"framework":\s*null/g, // Proxy for unoptimized usage? actually let's stick to memory
-            title: 'High Function Memory',
-            message: 'Check if high memory limits are needed.',
-            severity: 'info',
-            costImpact: 'Low',
-            // Simple placeholder regex
-            fileExtensions: ['.json']
-        },
-         {
-            id: 'vercel-memory',
-            regex: /"memory":\s*300[0-9]/g, // > 3000mb
-            title: 'High Function Memory',
-            message: 'High memory allocation detected (3GB+).',
-            severity: 'warning',
-            costImpact: 'Medium',
-            fileExtensions: ['vercel.json']
-        },
 
-        // --- Advanced Patterns ---
+        // --- terraform ---
         {
-            id: 'anthropic-prompt-caching',
-            regex: /anthropic\.messages\.create|Anthropic.*\.messages\.create/g,
-            title: 'Consider Prompt Caching',
-            message: 'If this call involves large repeated context (>1024 tokens), use Anthropic Prompt Caching headers to reduce costs by up to 90%.',
-            severity: 'info',
-            costImpact: 'Medium',
-            fileExtensions: ['.ts', '.js', '.py']
+            id: 'tf-gpu-instance',
+            regex: /instance_type\s*=\s*["'](?:p3|p4|g4|g5)\.[^"']+["']/g,
+            title: 'gpu ec2 instance',
+            message: 'p/g-series gpu instances cost $500–$30,000+/mo. confirm this is intentional.',
+            severity: 'critical',
+            costImpact: 'Critical',
+            fileExtensions: ['.tf']
         },
-        {
-            id: 'mongo-projection',
-            regex: /\.find\(\s*(\{\s*\}|\s*)\)/g, // .find({}) or .find()
-            title: 'Unoptimized Query (Projection)',
-            message: 'Avoid fetching full documents if not needed. Use projection to select only necessary fields.',
-            severity: 'info',
-            costImpact: 'Low',
-            fileExtensions: ['.ts', '.js']
-        }
     ];
 
     async analyze(context: FileContext, codeUnits?: CodeUnit[]): Promise<OptimizationSuggestion[]> {

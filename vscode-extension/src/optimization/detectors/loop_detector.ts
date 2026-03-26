@@ -7,16 +7,18 @@ export class LoopDetector implements OptimizationDetector {
     id = 'loop-detector';
     targetFileTypes = ['typescript', 'javascript', 'python', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.tsx', '.jsx'];
 
-    // Known costly operations to look for
+    // costly operations that are unambiguously expensive inside a loop.
+    // deliberately narrow — avoid generic names like 'get', 'put', 'find' that
+    // match almost everything and produce noisy false positives.
     private costPatterns = [
-        // LLM APIs
-        'openai', 'anthropic', 'gemini', 'cohere', 'completions.create', 'generatecontent',
-        // Databases
-        'find', 'findone', 'findbyid', 'scan', 'query', 'get', 'put', 'postgres', 'mysql', 'prisma',
-        // Generic HTTP
-        'fetch', 'axios', 'request',
-        // Common expensive business logic
-        'categorize', 'classify', 'analyze', 'predict'
+        // llm sdks
+        'completions.create', 'messages.create', 'generatecontent', 'generatetext', 'streamtext',
+        // http clients
+        'axios.get', 'axios.post', 'axios.put', 'axios.delete',
+        'fetch(',
+        // db — specific enough to not false-positive
+        'prisma.', '.findunique', '.findmany', '.findbyid', '.findone',
+        'dynamodb', 'docClient',
     ];
 
     private cachePatterns = ['cache', 'redis', 'memcached', 'memoize', 'store', 'kv'];
@@ -84,8 +86,8 @@ export class LoopDetector implements OptimizationDetector {
 
             walk(ast, null);
 
-        } catch (err) {
-            console.warn(`LoopDetector: Failed to parse TS/JS: ${err}`);
+        } catch (_err) {
+            // silently skip unparseable files (syntax errors, unsupported syntax)
         }
         return suggestions;
     }

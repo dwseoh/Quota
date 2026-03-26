@@ -124,7 +124,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   private suggestions: OptimizationSuggestion[] = [];
   private project_graph: CodespaceGraph | null = null;
   private user_count: number = 100;
-  private use_mock_data: boolean = true; // for testing before parser is ready
+  private use_mock_data: boolean = false;
 
   /**
    * get tree item
@@ -157,7 +157,6 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
             return Promise.resolve([]);
         }
     } catch (error) {
-        console.error('🔥 Error in getChildren:', error);
         vscode.window.showErrorMessage(`Tree Error: ${error}`);
         return Promise.resolve([]);
     }

@@ -35,12 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Helper function to collect all LLM calls from cached graph
   const updateTreeviewWithAllCalls = async () => {
     const graph = getCachedGraph();
-    if (!graph) {
-      console.log('❌ No cached graph available yet');
-      return;
-    }
-
-    console.log(`📊 Graph has ${graph.units.length} units, ${Object.keys(graph.classifications).length} classifications`);
+    if (!graph) return;
 
     const allCalls: llm_call[] = [];
     
