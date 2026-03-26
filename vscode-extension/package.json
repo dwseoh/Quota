@@ -14,7 +14,8 @@
     "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:go",
-    "onLanguage:java"
+    "onLanguage:java",
+    "onLanguage:csharp"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -149,7 +150,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "build:wasm": "tree-sitter build --wasm node_modules/tree-sitter-java -o wasm/tree-sitter-java.wasm",
+    "build:wasm": "tree-sitter build --wasm node_modules/tree-sitter-java -o wasm/tree-sitter-java.wasm && tree-sitter build --wasm node_modules/tree-sitter-c-sharp -o wasm/tree-sitter-csharp.wasm",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test"

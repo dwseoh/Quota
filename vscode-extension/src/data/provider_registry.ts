@@ -441,6 +441,12 @@ export function lookupProvider(pkg: string): ProviderInfo | null {
     const root = lower.split('.')[0];
     if (PYTHON_MODULES[root]) {return PYTHON_MODULES[root];}
 
+    // c# exact + prefix match (nuget ids and namespace prefixes)
+    if (CSHARP_PACKAGES[pkg]) { return CSHARP_PACKAGES[pkg]; }
+    for (const key of Object.keys(CSHARP_PACKAGES)) {
+        if (pkg.startsWith(key)) { return CSHARP_PACKAGES[key]; }
+    }
+
     // java prefix match (e.g. com.openai.OpenAIClient → com.openai)
     for (const key of Object.keys(JAVA_PACKAGES)) {
         if (pkg.startsWith(key)) {return JAVA_PACKAGES[key];}

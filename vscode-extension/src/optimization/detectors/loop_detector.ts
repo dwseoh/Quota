@@ -6,13 +6,14 @@ import { execFile } from 'child_process';
 import { findPythonBin } from '../../ast_parser';
 import { findGoBin } from '../../ast_parser/go_parse';
 import { getJavaParser } from '../../ast_parser/java_parse';
+import { getCSharpParser } from '../../ast_parser/cs_parse';
 
 const PYTHON_LOOP_SCRIPT = path.join(__dirname, '../../../scripts/loop_detector_ast.py');
 const GO_LOOP_SCRIPT = path.join(__dirname, '../../../scripts/loop_detector_ast.go');
 
 export class LoopDetector implements OptimizationDetector {
     id = 'loop-detector';
-    targetFileTypes = ['typescript', 'javascript', 'python', 'go', 'java', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.go', '.java', '.tsx', '.jsx'];
+    targetFileTypes = ['typescript', 'javascript', 'python', 'go', 'java', 'csharp', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.go', '.java', '.cs', '.tsx', '.jsx'];
 
     // costly operations that are unambiguously expensive inside a loop.
     // deliberately narrow — avoid generic names like 'get', 'put', 'find' that
@@ -42,6 +43,7 @@ export class LoopDetector implements OptimizationDetector {
         const isPython = context.languageId === 'python' || context.uri.fsPath.endsWith('.py');
         const isGo = context.languageId === 'go' || context.uri.fsPath.endsWith('.go');
         const isJava = context.languageId === 'java' || context.uri.fsPath.endsWith('.java');
+        const isCSharp = context.languageId === 'csharp' || context.uri.fsPath.endsWith('.cs');
 
         if (isPython) {
             return this.analyzePython(context.uri.fsPath, context.content, context.uri.toString());
@@ -51,6 +53,9 @@ export class LoopDetector implements OptimizationDetector {
         }
         if (isJava) {
             return this.analyzeJava(context.content, context.uri.toString());
+        }
+        if (isCSharp) {
+            return this.analyzeCSharp(context.content, context.uri.toString());
         }
         return this.analyzeTypeScript(context.content, context.uri.toString());
     }
@@ -178,6 +183,69 @@ export class LoopDetector implements OptimizationDetector {
                     costImpact: hasCache ? 'Low' : 'High'
                 });
             }
+        }
+    }
+
+    /**
+     * analyze c# using tree-sitter wasm — walks for/while/foreach/do nodes for costly calls.
+     */
+    private async analyzeCSharp(content: string, fileUri: string): Promise<OptimizationSuggestion[]> {
+        const csParser = await getCSharpParser();
+        if (!csParser) { return []; }
+
+        try {
+            const suggestions: OptimizationSuggestion[] = [];
+            const tree = csParser.parse(content);
+            if (!tree) { return []; }
+
+            const LOOP_TYPES = new Set(['for_statement', 'while_statement', 'do_statement', 'foreach_statement']);
+
+            const walk = (node: any, insideLoop: any | null) => {
+                const activeLoop = LOOP_TYPES.has(node.type) ? node : insideLoop;
+
+                if (activeLoop && node.type === 'invocation_expression') {
+                    const funcNode = node.childForFieldName('function');
+                    let callName = '';
+                    if (funcNode?.type === 'member_access_expression') {
+                        const obj = funcNode.childForFieldName('expression');
+                        const name = funcNode.childForFieldName('name');
+                        callName = obj && name ? `${obj.text}.${name.text}` : (name?.text ?? '');
+                    } else if (funcNode) {
+                        callName = funcNode.text;
+                    }
+
+                    if (callName) {
+                        const lowerName = callName.toLowerCase();
+                        const match = this.costPatterns.some(p => lowerName.includes(p.toLowerCase()));
+                        if (match) {
+                            const loopText = content.split('\n').slice(activeLoop.startPosition.row).join('\n');
+                            const hasCache = this.cachePatterns.some(p => loopText.toLowerCase().includes(p));
+                            const line = node.startPosition.row + 1;
+                            const col = node.startPosition.column;
+                            suggestions.push({
+                                id: `loop-cost-cs-${line}`,
+                                title: hasCache ? 'Verify Cache Effectiveness' : 'Costly Operation in Loop',
+                                description: `Detected potential costly operation '${callName}' inside a loop. ` +
+                                    (hasCache
+                                        ? `It looks like you have some caching logic, but verify it effectively reduces calls.`
+                                        : `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`),
+                                severity: (hasCache ? 'info' : 'warning') as 'info' | 'warning',
+                                location: { fileUri, startLine: line, startColumn: col, endLine: line, endColumn: col + callName.length },
+                                costImpact: hasCache ? 'Low' : 'High',
+                            });
+                        }
+                    }
+                }
+
+                for (const child of node.children) {
+                    walk(child, activeLoop);
+                }
+            };
+
+            walk(tree.rootNode, null);
+            return suggestions;
+        } catch {
+            return [];
         }
     }
 

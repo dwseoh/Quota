@@ -15,7 +15,7 @@ import { FileEntry } from './types';
  */
 export async function scanWorkspace(rootPath: string): Promise<FileEntry[]> {
     const files: FileEntry[] = [];
-    const extensions = ['.py', '.ts', '.js', '.go', '.java'];
+    const extensions = ['.py', '.ts', '.js', '.go', '.java', '.cs'];
     const ignorePatterns = ['node_modules', '.git', 'dist', 'out', 'build', '__pycache__', '.venv'];
 
     async function traverse(dir: string): Promise<void> {

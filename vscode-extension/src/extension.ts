@@ -38,6 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
         { language: "javascript", scheme: "file" },
         { language: "go", scheme: "file" },
         { language: "java", scheme: "file" },
+        { language: "csharp", scheme: "file" },
       ],
       codelens_provider,
     ),
@@ -138,6 +139,8 @@ export function activate(context: vscode.ExtensionContext) {
         filePath.endsWith(".py") ||
         filePath.endsWith(".go") ||
         filePath.endsWith(".java") ||
+        filePath.endsWith(".cs") ||
+        filePath.endsWith(".csproj") ||
         filePath.endsWith(".tf")
       ) {
         clearTimeout(saveDebounceTimer);
