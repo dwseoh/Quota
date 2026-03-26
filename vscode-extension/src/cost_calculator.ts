@@ -1,15 +1,11 @@
-/**
- * cost_calculator.ts - person 1's work area
- * calculates token estimates and costs for llm calls
- */
+// calculates token estimates and costs for llm calls.
+// pricing is sourced from litellm at runtime via pricing_fetcher — do not hardcode model prices here.
 
-import { llm_call, pricing_table, cost_breakdown, pricing_info } from './types';
-import { pricing } from './data/price_table';
+import { pricing_table, cost_breakdown, pricing_info } from './types';
+import { getPricing } from './pricing_fetcher';
+import { pricing as fallbackPricing } from './data/price_table';
 
-/**
- * pricing table imported from data source
- */
-export { pricing };
+export { fallbackPricing as pricing };
 
 /**
  * estimate tokens from text using simple heuristic
@@ -27,35 +23,25 @@ export function estimate_tokens(text: string): number {
  * @param tokens - token count
  * @returns cost in dollars
  */
-/**
- * Find the best matching key in the pricing table
- */
-function findMatchingKey(model: string): string | undefined {
-    const inputModel = model.toLowerCase().trim();
-    
-    // 1. Exact match
-    if (pricing[inputModel]) return inputModel;
-    
-    // 2. Substring match (longest wins)
-    const potentialMatches = Object.keys(pricing).filter(key => inputModel.includes(key));
-    if (potentialMatches.length > 0) {
-        potentialMatches.sort((a, b) => b.length - a.length);
-        return potentialMatches[0];
+// finds the best matching key in the pricing table — exact match first, then longest substring
+function findMatchingKey(model: string, table: pricing_table): string | undefined {
+    const input = model.toLowerCase().trim();
+    if (table[input]) return input;
+    const matches = Object.keys(table).filter(key => input.includes(key));
+    if (matches.length > 0) {
+        matches.sort((a, b) => b.length - a.length);
+        return matches[0];
     }
-    
     return undefined;
 }
 
-export function calculate_cost(model: string, tokens: number): number {
-  const matchedKey = findMatchingKey(model);
-  
-  if (!matchedKey) {
-    console.warn(`Unknown model/api: ${model}, using default rate`);
-    return (tokens / 1000) * 0.01; // Default fallback
-  }
-  
-  const model_pricing = pricing[matchedKey];
-  return (tokens / 1000) * model_pricing.input;
+// returns null if model is unknown — callers should show "unknown" rather than a fake estimate
+export function calculate_cost(model: string | null, tokens: number): number | null {
+    if (!model) return null;
+    const table = getPricing();
+    const key = findMatchingKey(model, table);
+    if (!key) return null;
+    return (tokens / 1000) * table[key].input;
 }
 
 /**
@@ -67,53 +53,31 @@ export function calculate_cost(model: string, tokens: number): number {
  */
 
 export function get_cost_breakdown(
-  model: string,
-  input_tokens: number,
-  output_tokens: number = 0
-): cost_breakdown {
-  const matchedKey = findMatchingKey(model);
-  const model_pricing = matchedKey ? pricing[matchedKey] : undefined;
-
-  if (!model_pricing) {
-    return {
-      input_tokens: 0,
-      output_tokens: 0,
-      input_cost: 0,
-      output_cost: 0,
-      total_cost: 0
-    };
-  }
-  
-  const input_cost = (input_tokens / 1000) * model_pricing.input;
-  const output_cost = (output_tokens / 1000) * model_pricing.output;
-  
-  return {
-    input_tokens,
-    output_tokens,
-    input_cost,
-    output_cost,
-    total_cost: input_cost + output_cost
-  };
+    model: string | null,
+    input_tokens: number,
+    output_tokens: number = 0
+): cost_breakdown | null {
+    if (!model) return null;
+    const table = getPricing();
+    const key = findMatchingKey(model, table);
+    if (!key) return null;
+    const p = table[key];
+    const input_cost = (input_tokens / 1000) * p.input;
+    const output_cost = (output_tokens / 1000) * p.output;
+    return { input_tokens, output_tokens, input_cost, output_cost, total_cost: input_cost + output_cost };
 }
 
-/**
- * Get the pricing info for a model (returns undefined if not supported)
- */
 export function get_model_pricing(model: string): pricing_info | undefined {
-  return pricing[model];
+    const table = getPricing();
+    const key = findMatchingKey(model, table);
+    return key ? table[key] : undefined;
 }
 
-/**
- * List supported model names
- */
 export function supported_models(): string[] {
-  return Object.keys(pricing);
+    return Object.keys(getPricing());
 }
 
-/**
- * Calculate the total cost (input + output) for a model given token counts
- */
-export function calculate_total_cost(model: string, input_tokens: number, output_tokens: number = 0): number {
-  const breakdown = get_cost_breakdown(model, input_tokens, output_tokens);
-  return breakdown.total_cost;
+export function calculate_total_cost(model: string | null, input_tokens: number, output_tokens: number = 0): number | null {
+    const breakdown = get_cost_breakdown(model, input_tokens, output_tokens);
+    return breakdown ? breakdown.total_cost : null;
 }

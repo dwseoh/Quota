@@ -60,9 +60,10 @@ export class CostDecorationProvider {
                 editor.document.lineAt(Math.max(0, call.line - 1)).text.length
             );
 
-            if (call.estimated_cost < 0.001) {
+            const cost = call.estimated_cost;
+            if (cost === null || cost < 0.001) {
                 lowCostRanges.push(range);
-            } else if (call.estimated_cost < 0.01) {
+            } else if (cost < 0.01) {
                 mediumCostRanges.push(range);
             } else {
                 highCostRanges.push(range);

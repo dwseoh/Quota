@@ -5,12 +5,12 @@
 
 export interface llm_call {
   line: number;
-  file_path?: string; // optional for backwards compatibility
-  provider: string; // e.g. "openai", "stripe", "mapbox"
-  model: string;
+  file_path?: string;
+  provider: string;
+  model: string | null;    // null if no model string found in code
   prompt_text: string;
   estimated_tokens: number;
-  estimated_cost: number;
+  estimated_cost: number | null;  // null if model is unknown or not in pricing table
 }
 
 export interface cost_breakdown {
@@ -58,12 +58,6 @@ export interface ApiClassification {
   category: 'llm' | 'payment' | 'weather' | 'database' | 'other';
   provider: string;        // e.g., "openai", "stripe", "aws"
   confidence: number;      // 0-1
-}
-
-export interface FileEntry {
-  path: string;
-  hash: string;
-  lastModified: number;
 }
 
 export interface FileEntry {

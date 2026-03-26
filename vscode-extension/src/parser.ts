@@ -166,7 +166,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
 
     if (classification && classification.role === 'consumer' && classification.category === 'llm') {
       // Extract model and estimate cost
-      const model = extractModelFromCode(unit.body, classification.provider);
+      const model = extractModelFromCode(unit.body);
       const promptText = extractPromptFromCode(unit.body);
       const tokens = estimate_tokens(promptText);
       const cost = calculate_cost(model, tokens);
@@ -192,18 +192,20 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
  * @param provider - provider name
  * @returns model name
  */
-export function extractModelFromCode(code: string, provider: string): string {
-  // Look for model parameter
-  const modelMatch = code.match(/model\s*[:=]\s*["']([^"']+)["']/);
-  if (modelMatch) {
-    console.log(`  🎯 Extracted model: ${modelMatch[1]}`);
-    return modelMatch[1];
-  }
-
-  // Default models by provider
-  if (provider === 'openai') return 'gpt-4';
-  if (provider === 'anthropic') return 'claude-sonnet-4';
-  return 'unknown';
+// extracts the model string from code. returns null if no model string is found.
+// no fallback defaults — unknown model means we can't estimate cost.
+export function extractModelFromCode(code: string): string | null {
+    const patterns = [
+        /\bmodel\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,
+        /\bmodelName\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,      // langchain
+        /\bengine\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,          // older openai api
+        /\bdeployment(?:Name)?\s*[:=]\s*["'`]([^"'`\n]+)["'`]/, // azure openai
+    ];
+    for (const pattern of patterns) {
+        const match = code.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
 }
 
 /**

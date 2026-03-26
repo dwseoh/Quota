@@ -8,6 +8,7 @@ import { cost_codelens_provider } from './codelens_provider';
 import { cost_tree_provider } from './treeview_provider';
 import { llm_call } from './types';
 import { initializeParser, indexWorkspace, getCachedGraph, extractModelFromCode, extractPromptFromCode } from './parser';
+import { loadPricing } from './pricing_fetcher';
 import { calculate_cost, estimate_tokens } from './cost_calculator';
 import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
@@ -45,7 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
       const classification = graph.classifications[unit.id];
       
       if (classification && classification.role === 'consumer' && classification.category === 'llm') {
-        const model = extractModelFromCode(unit.body, classification.provider);
+        const model = extractModelFromCode(unit.body);
         const promptText = extractPromptFromCode(unit.body);
         const tokens = estimate_tokens(promptText);
         const cost = calculate_cost(model, tokens);
@@ -124,7 +125,7 @@ export function activate(context: vscode.ExtensionContext) {
     tree_provider.update_all_data(allCalls, graph, uniqueSuggestions);
     
     // Update status bar with new totals
-    const totalCost = allCalls.reduce((sum, call) => sum + call.estimated_cost, 0);
+    const totalCost = allCalls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0);
     const userCount = tree_provider.get_user_count();
     updateStatusBar(totalCost, userCount);
 
@@ -191,6 +192,9 @@ export function activate(context: vscode.ExtensionContext) {
     treeDataProvider: tree_provider
   });
   context.subscriptions.push(tree_view);
+
+  // load pricing in background — workspace indexing will use whatever is cached by the time it runs
+  loadPricing(context.globalStorageUri.fsPath).catch(() => { /* falls back to hardcoded table */ });
 
   // Initialize parser system
   initializeParser(workspaceRoot).then(() => {

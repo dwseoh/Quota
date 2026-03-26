@@ -175,7 +175,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     // use mock data if parser isn't ready yet
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
     const total_cost = this.use_mock_data 
-        ? calls.reduce((sum, call) => sum + call.estimated_cost, 0) 
+        ? calls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0)
         : this.total_cost_cache;
     const call_count = calls.length;
     
@@ -225,11 +225,12 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
     
     // Sort by cost (High -> Low)
-    calls.sort((a, b) => b.estimated_cost - a.estimated_cost);
+    calls.sort((a, b) => (b.estimated_cost ?? -1) - (a.estimated_cost ?? -1));
 
     return calls.map(call => {
-      // Simplified Format: Model • Cost
-      const label = `${call.model} • $${call.estimated_cost.toFixed(4)}`;
+      const costStr = call.estimated_cost !== null ? `$${call.estimated_cost.toFixed(4)}` : 'unknown model';
+      const modelStr = call.model ?? 'model not specified';
+      const label = `${modelStr} • ${costStr}`;
       return new cost_tree_item(
         label,
         vscode.TreeItemCollapsibleState.None,
@@ -262,7 +263,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   private get_simulator_items(): cost_tree_item[] {
     const items: cost_tree_item[] = [];
     const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
-    const total_cost = calls.reduce((sum, call) => sum + call.estimated_cost, 0);
+    const total_cost = calls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0);
     
     // current settings
     items.push(new cost_tree_item(
@@ -442,7 +443,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
    */
   private recalculate_stats() {
       // 1. Total Cost
-      this.total_cost_cache = this.detected_calls.reduce((sum, call) => sum + call.estimated_cost, 0);
+      this.total_cost_cache = this.detected_calls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0);
 
       // 2. Top Files (previously in get_project_items)
       if (!this.project_graph) return;
@@ -452,7 +453,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       // Or if we want graph-based breadth:
       for (const call of this.detected_calls) {
           if (call.file_path) {
-             fileCosts.set(call.file_path, (fileCosts.get(call.file_path) || 0) + call.estimated_cost);
+             fileCosts.set(call.file_path, (fileCosts.get(call.file_path) || 0) + (call.estimated_cost ?? 0));
           }
       }
 

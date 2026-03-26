@@ -29,7 +29,8 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
     for (const call of detected_calls) {
       const lineIdx = Math.max(0, Math.min(document.lineCount - 1, call.line - 1));
       const lineRange = document.lineAt(lineIdx).range;
-      const title = `💰 ~$${call.estimated_cost.toFixed(4)} • ${call.estimated_tokens} tok • ${call.provider}:${call.model}`.toLowerCase();
+      const costStr = call.estimated_cost !== null ? `~$${call.estimated_cost.toFixed(4)}` : 'unknown model';
+      const title = `💰 ${costStr} • ${call.estimated_tokens} tok • ${call.provider}:${call.model ?? 'unspecified'}`.toLowerCase();
 
       const command: vscode.Command = {
         title,
