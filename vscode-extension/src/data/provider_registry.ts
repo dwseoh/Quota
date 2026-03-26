@@ -201,6 +201,76 @@ export function extractPackageFromImport(line: string): string | null {
     return null;
 }
 
+// known api call site patterns per llm provider.
+// used to verify a function actually calls the api, not just lives in a file that imports the sdk.
+// patterns work for both ts/js and python since most sdk method names are identical.
+const LLM_CALL_PATTERNS: Record<string, RegExp[]> = {
+    'openai': [
+        /\.chat\.completions\.create\s*\(/,
+        /\.completions\.create\s*\(/,
+        /\.embeddings\.create\s*\(/,
+        /\.images\.generate\s*\(/,
+    ],
+    'anthropic': [
+        /\.messages\.create\s*\(/,
+        /\.messages\.stream\s*\(/,
+    ],
+    'gemini': [
+        /\.generateContent\s*\(/,
+        /getGenerativeModel\s*\(/,
+        /\.startChat\s*\(/,
+        /genai\.GenerativeModel\s*\(/,      // python
+        /model\.generate_content\s*\(/,     // python
+    ],
+    'mistral': [
+        /\.chat\.complete\s*\(/,
+        /mistral\.chat\s*\(/,
+    ],
+    'groq': [
+        /\.chat\.completions\.create\s*\(/,
+    ],
+    'cohere': [
+        /\.generate\s*\(/,
+        /co\.generate\s*\(/,
+        /\.chat\s*\(/,
+        /co\.embed\s*\(/,
+    ],
+    'vertex-ai': [
+        /\.predict\s*\(/,
+        /\.predict_async\s*\(/,
+        /\.generateContent\s*\(/,
+    ],
+    'langchain': [
+        /new\s+Chat(?:OpenAI|Anthropic|Google|Mistral|Groq|Cohere)\s*\(/,
+        /Chat(?:OpenAI|Anthropic|Google|Mistral|Groq|Cohere)\s*\(/,  // python
+        /\.invoke\s*\(/,
+        /\.stream\s*\(/,
+        /\.batch\s*\(/,
+    ],
+    'vercel-ai': [
+        /generateText\s*\(/,
+        /streamText\s*\(/,
+        /generateObject\s*\(/,
+        /streamObject\s*\(/,
+    ],
+};
+
+// fallback for providers not specifically listed — broad enough to catch most sdks
+const GENERIC_LLM_CALL_PATTERNS = [
+    /\.create\s*\(/,
+    /\.complete\s*\(/,
+    /\.generate\s*\(/,
+    /\.invoke\s*\(/,
+];
+
+// returns true if the function body contains an actual api call for the given provider.
+// prevents over-classification of utility functions that happen to live in a file
+// that imports an llm sdk but don't themselves make any api calls.
+export function hasLlmCallSite(body: string, provider: string): boolean {
+    const patterns = LLM_CALL_PATTERNS[provider] ?? GENERIC_LLM_CALL_PATTERNS;
+    return patterns.some(p => p.test(body));
+}
+
 // catch-all prefixes for known llm sdk families — any package under these namespaces is llm.
 // avoids needing individual entries for every @langchain/x, @ai-sdk/x, etc.
 const LLM_FAMILY_PREFIXES = ['@langchain/', '@ai-sdk/', '@llamaindex/'];

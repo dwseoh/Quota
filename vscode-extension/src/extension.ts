@@ -9,6 +9,7 @@ import { cost_tree_provider } from './treeview_provider';
 import { llm_call } from './types';
 import { initializeParser, indexWorkspace, getCachedGraph, extractModelFromCode, extractPromptFromCode } from './parser';
 import { loadPricing } from './pricing_fetcher';
+import { hasLlmCallSite } from './data/provider_registry';
 import { calculate_cost, estimate_tokens } from './cost_calculator';
 import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
@@ -48,6 +49,11 @@ export function activate(context: vscode.ExtensionContext) {
       
       if (classification && classification.role === 'consumer') {
         const isLlm = classification.category === 'llm';
+
+        // for llm units, verify there's an actual call site in the function body —
+        // skip utility functions that just live in a file that imports an llm sdk
+        if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) continue;
+
         const model = isLlm ? extractModelFromCode(unit.body) : null;
         const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
         const tokens = isLlm ? estimate_tokens(promptText) : 0;

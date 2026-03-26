@@ -8,6 +8,7 @@ import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, Contex
 import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';
 import { parseFile, bundleContext } from './ast_parser';
 import { classifyApiUsage, initializeGemini, detectProvidersQuick } from './intelligence';
+import { hasLlmCallSite } from './data/provider_registry';
 import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';
 import { estimate_tokens, calculate_cost } from './cost_calculator';
 import * as fs from 'fs';
@@ -134,6 +135,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
 
     if (classification && classification.role === 'consumer') {
       const isLlm = classification.category === 'llm';
+      if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) continue;
       const model = isLlm ? extractModelFromCode(unit.body) : null;
       const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
       const tokens = isLlm ? estimate_tokens(promptText) : 0;
