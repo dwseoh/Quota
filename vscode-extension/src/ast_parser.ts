@@ -61,7 +61,6 @@ async function parseFileWithVSCode(filePath: string): Promise<CodeUnit[]> {
     if (!symbols || symbols.length === 0) {
         // VSCode symbol provider returned nothing - fallback to language-specific parsers
         const ext = path.extname(filePath);
-        console.log(`⚠️ VSCode returned no symbols for ${path.basename(filePath)}, using fallback parser`);
         
         if (ext === '.py') {
             return parsePythonFileBasic(filePath);
@@ -299,8 +298,6 @@ function parsePythonFileBasic(filePath: string): CodeUnit[] {
         const units: CodeUnit[] = [];
         const imports = extractImports(content, '.py');
 
-        console.log(`🐍 Python parsing: ${path.basename(filePath)} (${lines.length} lines)`);
-        console.log(`   Imports found: ${imports.length}`);
 
         // Match function definitions: def function_name(
         const functionRegex = /^(async\s+)?def\s+(\w+)\s*\(/;
@@ -314,7 +311,6 @@ function parsePythonFileBasic(filePath: string): CodeUnit[] {
             // Function
             const funcMatch = trimmed.match(functionRegex);
             if (funcMatch) {
-                console.log(`   ✅ Found function: ${funcMatch[2]} at line ${i + 1}`);
                 const name = funcMatch[2];
                 const startLine = i + 1;
                 // Find end of function (next def/class or dedent)
@@ -349,7 +345,6 @@ function parsePythonFileBasic(filePath: string): CodeUnit[] {
             // Class
             const classMatch = trimmed.match(classRegex);
             if (classMatch) {
-                console.log(`   ✅ Found class: ${classMatch[1]} at line ${i + 1}`);
                 const name = classMatch[1];
                 const startLine = i + 1;
                 let endLine = startLine;
@@ -381,7 +376,6 @@ function parsePythonFileBasic(filePath: string): CodeUnit[] {
             }
         }
 
-        console.log(`   📦 Total units extracted: ${units.length}`);
         return units;
     } catch (error) {
         console.error(`❌ Error parsing Python file ${filePath}:`, error);

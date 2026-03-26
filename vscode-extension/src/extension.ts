@@ -18,9 +18,7 @@ import { CostCodeActionProvider } from './code_action_provider';
 import { CostDecorationProvider } from './decoration_provider';
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('cost-tracker extension is now active');
-
-  // Get workspace root
+  // get workspace root
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
     vscode.window.showWarningMessage('Cost Tracker: No workspace folder found');
@@ -178,7 +176,7 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
 
-  // --- person 2's registration: codelens provider ---
+  // codelens provider
   const codelens_provider = new cost_codelens_provider();
   const codelens_disposable = vscode.languages.registerCodeLensProvider(
     [
@@ -190,7 +188,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(codelens_disposable);
 
-  // --- person 3's registration: treeview provider ---
+  // treeview provider
   const tree_provider = new cost_tree_provider();
   const tree_view = vscode.window.createTreeView('cost-tracker-panel', {
     treeDataProvider: tree_provider
@@ -202,18 +200,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Initialize parser system
   initializeParser(workspaceRoot).then(() => {
-    console.log('Parser system initialized');
-
-    // --- Optimization Manager Initialization ---
-    // Import dynamically or at top level. Assuming top level imports are added by user/formatter, 
-    // but here we rely on the file being valid TS.
-    // Note: ensure we import these at the top of file!
     const optManager = OptimizationManager.getInstance();
     optManager.registerDetector(new LoopDetector());
     optManager.registerDetector(new PatternDetector());
-    console.log('✨ Optimization Manager initialized with detectors');
 
-    // Run initial workspace indexing in background
     vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
       title: 'Cost Tracker: Indexing workspace...',
@@ -223,26 +213,15 @@ export function activate(context: vscode.ExtensionContext) {
         progress.report({ increment: 0, message: 'Scanning files...' });
         await indexWorkspace(workspaceRoot);
         progress.report({ increment: 100, message: 'Complete!' });
-        
-        console.log('\n========================================');
-        console.log('🚀 INDEXING COMPLETE - Updating Treeview');
-        console.log('========================================\n');
-        
-        // Update treeview with real data from all files
         await updateTreeviewWithAllCalls();
-        
         vscode.window.showInformationMessage('Cost Tracker: Workspace indexed successfully');
-        
-        // Refresh providers after indexing
         codelens_provider.refresh();
         tree_provider.refresh();
       } catch (error) {
-        console.error('Error during workspace indexing:', error);
         vscode.window.showErrorMessage(`Cost Tracker: Indexing failed - ${error}`);
       }
     });
   }).catch(error => {
-    console.error('Failed to initialize parser:', error);
     vscode.window.showErrorMessage(`Cost Tracker: Parser initialization failed - ${error}`);
   });
 
@@ -461,6 +440,4 @@ export function activate(context: vscode.ExtensionContext) {
 
 }
 
-export function deactivate() {
-  console.log('cost-tracker extension is now deactivated');
-}
+export function deactivate() {}

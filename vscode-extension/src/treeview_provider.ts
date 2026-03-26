@@ -140,11 +140,8 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
     try {
         // if no element, return root level items
         if (!element) {
-          // console.log('🌲 getChildren(root)');
-          return Promise.resolve(this.get_root_items());
+            return Promise.resolve(this.get_root_items());
         }
-        
-        // console.log(`🌲 getChildren(${element.label}, type=${element.item_type})`);
 
         // handle children for expandable sections
         switch (element.item_type) {

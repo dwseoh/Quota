@@ -22,7 +22,6 @@ export async function initializeStore(workspaceRoot: string): Promise<void> {
         // Create directory if it doesn't exist
         if (!fs.existsSync(analyticsPath)) {
             await fs.promises.mkdir(analyticsPath, { recursive: true });
-            console.log(`Created analytics directory: ${analyticsPath}`);
         }
 
         // Create cache subdirectory
@@ -53,7 +52,6 @@ export async function saveIndex(
             JSON.stringify(graph, null, 2),
             'utf-8'
         );
-        console.log(`Saved index to ${indexPath}`);
     } catch (error) {
         console.error('Error saving index:', error);
         throw error;

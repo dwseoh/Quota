@@ -24,7 +24,6 @@ let cachedGraph: CodespaceGraph | null = null;
 export async function initializeParser(workspaceRoot: string, apiKey?: string): Promise<void> {
   await initializeStore(workspaceRoot);
   initializeGemini(apiKey);
-  console.log('Parser system initialized');
 }
 
 /**
@@ -33,20 +32,12 @@ export async function initializeParser(workspaceRoot: string, apiKey?: string): 
  * @returns complete codespace graph
  */
 export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> {
-  console.log('Starting workspace indexing...');
-
   try {
-    // Load previous state
     const previousGraph = await loadIndex(rootPath);
     const previousHashes = await loadFileHashes(rootPath);
-
-    // Scan workspace
     const files = await scanWorkspace(rootPath);
     const currentHashes = createHashMap(files);
-
-    // Determine which files need processing
     const modifiedFilePaths = getModifiedFiles(currentHashes, previousHashes);
-    console.log(`Found ${modifiedFilePaths.length} modified files out of ${files.length} total`);
 
     // Parse modified files
     const allUnits: CodeUnit[] = previousGraph?.units || [];
@@ -56,14 +47,10 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
     const newUnitsToClassify: { unit: CodeUnit; bundle: ContextBundle }[] = [];
 
     for (const filePath of modifiedFilePaths) {
-      console.log(`\n📄 Parsing ${filePath}...`);
-
-      // Remove old units from this file (keep units from other files)
       const unitsFromOtherFiles = allUnits.filter(u => u.location.fileUri !== filePath);
       
       // Parse and add new units
       const newUnits = await parseFile(filePath);
-      console.log(`  Found ${newUnits.length} code units`);
       
       // Replace allUnits with units from other files + new units from this file
       allUnits.length = 0; // Clear array
@@ -85,20 +72,12 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
 
     // Batch classify all new units (1-2 API calls instead of 50+)
     if (newUnitsToClassify.length > 0) {
-      console.log(`\nBatch classifying ${newUnitsToClassify.length} code units...`);
-
       const bundles = newUnitsToClassify.map(item => item.bundle);
       const { batchClassifyApis } = await import('./intelligence.js');
-      // Use quick detection by default (no Gemini API calls)
-      // To enable Gemini: pass false as second parameter
       const classifications = await batchClassifyApis(bundles, true);
-
-      // Map classifications back to units
       for (let i = 0; i < newUnitsToClassify.length; i++) {
         allClassifications[newUnitsToClassify[i].unit.id] = classifications[i];
       }
-
-      console.log('Batch classification complete!\n');
     }
 
     // Build file nodes
@@ -125,18 +104,8 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
     // Cache for quick access
     cachedGraph = graph;
 
-    console.log(`\n📦 Indexing complete: ${files.length} files, ${allUnits.length} units`);
-    console.log(`📋 Classifications: ${Object.keys(allClassifications).length} total`);
-    
-    // Count LLM classifications
-    const llmCount = Object.values(allClassifications).filter(
-      c => c.role === 'consumer' && c.category === 'llm'
-    ).length;
-    console.log(`🤖 LLM API calls detected: ${llmCount}`);
-    
     return graph;
   } catch (error) {
-    console.error('Error indexing workspace:', error);
     throw error;
   }
 }
@@ -150,7 +119,6 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
   const calls: llm_call[] = [];
 
   if (!cachedGraph) {
-    console.warn('Workspace not indexed yet, returning empty results');
     return calls;
   }
 

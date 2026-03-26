@@ -27,7 +27,6 @@ export function initializeGemini(apiKey?: string): void {
     }
 
     genAI = new GoogleGenerativeAI(key);
-    console.log('Gemini API initialized successfully');
 }
 
 /**
@@ -247,7 +246,6 @@ export async function batchClassifyApis(
         // Build batch prompt
         const prompt = buildBatchClassificationPrompt(allPatterns);
 
-        console.log(`Analyzing ${bundles.length} code units in one batch...`);
         const result = await model.generateContent(prompt);
         const response = result.response.text();
 
