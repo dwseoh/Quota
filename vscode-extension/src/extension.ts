@@ -14,6 +14,7 @@ import { calculate_cost, estimate_tokens } from './cost_calculator';
 import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
 import { PatternDetector } from './optimization/detectors/pattern_detector';
+import { IacDetector } from './iac/detector';
 import { OptimizationSuggestion } from './optimization/types';
 import { CostCodeActionProvider } from './code_action_provider';
 import { CostDecorationProvider } from './decoration_provider';
@@ -209,6 +210,7 @@ export function activate(context: vscode.ExtensionContext) {
     const optManager = OptimizationManager.getInstance();
     optManager.registerDetector(new LoopDetector());
     optManager.registerDetector(new PatternDetector());
+    optManager.registerDetector(new IacDetector());
 
     vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
@@ -418,7 +420,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
       const filePath = document.uri.fsPath;
-      if (filePath.endsWith('.py') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
+      if (filePath.endsWith('.ts') || filePath.endsWith('.js') || filePath.endsWith('.tf')) {
         clearTimeout(saveDebounceTimer);
         saveDebounceTimer = setTimeout(async () => {
           try {
