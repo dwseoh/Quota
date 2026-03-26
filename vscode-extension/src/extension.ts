@@ -45,17 +45,18 @@ export function activate(context: vscode.ExtensionContext) {
     for (const unit of graph.units) {
       const classification = graph.classifications[unit.id];
       
-      if (classification && classification.role === 'consumer' && classification.category === 'llm') {
-        const model = extractModelFromCode(unit.body);
-        const promptText = extractPromptFromCode(unit.body);
-        const tokens = estimate_tokens(promptText);
-        const cost = calculate_cost(model, tokens);
-        
+      if (classification && classification.role === 'consumer') {
+        const isLlm = classification.category === 'llm';
+        const model = isLlm ? extractModelFromCode(unit.body) : null;
+        const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
+        const tokens = isLlm ? estimate_tokens(promptText) : 0;
+        const cost = isLlm ? calculate_cost(model, tokens) : null;
+
         allCalls.push({
-          line: unit.location.startLine, // Keep 1-indexed for display
+          line: unit.location.startLine,
           file_path: unit.location.fileUri,
-          provider: classification.provider === 'openai' ? 'openai' : 'anthropic',
-          model: model,
+          provider: classification.provider,
+          model,
           prompt_text: promptText,
           estimated_tokens: tokens,
           estimated_cost: cost

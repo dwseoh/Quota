@@ -164,18 +164,18 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
   for (const unit of documentUnits) {
     const classification = cachedGraph.classifications[unit.id];
 
-    if (classification && classification.role === 'consumer' && classification.category === 'llm') {
-      // Extract model and estimate cost
-      const model = extractModelFromCode(unit.body);
-      const promptText = extractPromptFromCode(unit.body);
-      const tokens = estimate_tokens(promptText);
-      const cost = calculate_cost(model, tokens);
+    if (classification && classification.role === 'consumer') {
+      const isLlm = classification.category === 'llm';
+      const model = isLlm ? extractModelFromCode(unit.body) : null;
+      const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
+      const tokens = isLlm ? estimate_tokens(promptText) : 0;
+      const cost = isLlm ? calculate_cost(model, tokens) : null;
 
       calls.push({
-        line: unit.location.startLine, // Keep 1-indexed (codelens will adjust)
+        line: unit.location.startLine,
         file_path: documentUri,
-        provider: classification.provider === 'openai' ? 'openai' : 'anthropic',
-        model: model,
+        provider: classification.provider,
+        model,
         prompt_text: promptText,
         estimated_tokens: tokens,
         estimated_cost: cost
