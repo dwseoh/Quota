@@ -210,6 +210,10 @@ const LLM_CALL_PATTERNS: Record<string, RegExp[]> = {
         /\.completions\.create\s*\(/,
         /\.embeddings\.create\s*\(/,
         /\.images\.generate\s*\(/,
+        // python: old openai sdk (< 1.0)
+        /openai\.ChatCompletion\.create\s*\(/,
+        /openai\.Completion\.create\s*\(/,
+        /openai\.Embedding\.create\s*\(/,
     ],
     'anthropic': [
         /\.messages\.create\s*\(/,

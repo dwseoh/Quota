@@ -11,14 +11,19 @@ export class LoopDetector implements OptimizationDetector {
     // deliberately narrow — avoid generic names like 'get', 'put', 'find' that
     // match almost everything and produce noisy false positives.
     private costPatterns = [
-        // llm sdks
+        // llm sdks (ts/js and python)
         'completions.create', 'messages.create', 'generatecontent', 'generatetext', 'streamtext',
-        // http clients
+        'ChatCompletion.create', 'Completion.create',   // python old openai sdk
+        // http clients — ts/js
         'axios.get', 'axios.post', 'axios.put', 'axios.delete',
         'fetch(',
+        // http clients — python
+        'requests.get', 'requests.post', 'requests.put', 'requests.delete',
+        'httpx.get', 'httpx.post', 'httpx.put', 'httpx.delete',
         // db — specific enough to not false-positive
         'prisma.', '.findunique', '.findmany', '.findbyid', '.findone',
         'dynamodb', 'docClient',
+        'table.scan', 'client.scan',   // python boto3
     ];
 
     private cachePatterns = ['cache', 'redis', 'memcached', 'memoize', 'store', 'kv'];

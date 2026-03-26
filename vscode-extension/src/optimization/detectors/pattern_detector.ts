@@ -20,7 +20,7 @@ export class PatternDetector implements OptimizationDetector {
     private rules: PatternRule[] = [
         // --- database ---
         {
-            // matches dynamodb client scan calls: docClient.scan(, ddb.scan(, dynamodb.scan(
+            // ts/js: matches known dynamodb client variable names before .scan(
             id: 'dynamodb-scan',
             regex: /(?:docClient|ddb|dynamodb|DynamoDB|DocumentClient)\s*(?:\.\s*\w+\s*)?\.\s*scan\s*\(/g,
             title: 'dynamodb full table scan',
@@ -30,13 +30,23 @@ export class PatternDetector implements OptimizationDetector {
             fileExtensions: ['.ts', '.js']
         },
         {
+            // python boto3: table.scan() or client.scan(TableName=...)
+            id: 'boto3-dynamodb-scan',
+            regex: /(?:table|client|dynamodb)\s*\.\s*scan\s*\(/g,
+            title: 'dynamodb full table scan (boto3)',
+            message: 'avoid .scan() on dynamodb — reads every item in the table, costs scale with table size. use .query() with a key condition instead.',
+            severity: 'warning',
+            costImpact: 'High',
+            fileExtensions: ['.py']
+        },
+        {
             id: 'sql-select-all',
             regex: /SELECT\s+\*\s+FROM/gi,
             title: 'sql select *',
             message: 'select * fetches all columns including large blobs. specify only the columns you need to reduce data transfer and rds read costs.',
             severity: 'info',
             costImpact: 'Low',
-            fileExtensions: ['.ts', '.js', '.sql']
+            fileExtensions: ['.ts', '.js', '.py', '.sql']
         },
         {
             // .find({}) or .find() — mongo fetch without projection

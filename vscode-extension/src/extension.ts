@@ -415,7 +415,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
       const filePath = document.uri.fsPath;
-      if (filePath.endsWith('.ts') || filePath.endsWith('.js') || filePath.endsWith('.tf')) {
+      if (filePath.endsWith('.ts') || filePath.endsWith('.js') || filePath.endsWith('.py') || filePath.endsWith('.tf')) {
         clearTimeout(saveDebounceTimer);
         saveDebounceTimer = setTimeout(async () => {
           try {
