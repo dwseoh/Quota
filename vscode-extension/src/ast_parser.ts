@@ -56,7 +56,7 @@ extract(sys.argv[1])`;
 // cached python binary name — undefined = not yet tested, null = not available
 let cachedPythonBin: string | null | undefined = undefined;
 
-async function findPythonBin(): Promise<string | null> {
+export async function findPythonBin(): Promise<string | null> {
     if (cachedPythonBin !== undefined) return cachedPythonBin;
     for (const bin of ['python3', 'python']) {
         const found = await new Promise<boolean>(resolve => {

@@ -2,6 +2,61 @@ import { OptimizationDetector, OptimizationSuggestion, FileContext } from '../ty
 import { CodeUnit } from '../../types';
 import { parse } from '@typescript-eslint/parser';
 import * as path from 'path';
+import { execFile } from 'child_process';
+import { findPythonBin } from '../../ast_parser';
+
+// python ast script for loop detection.
+// uses a NodeVisitor that tracks the innermost loop and reports each costly call once.
+// cost patterns are mirrored from the costPatterns array below.
+const PYTHON_LOOP_SCRIPT = `import ast, json, sys
+
+def get_call_name(node):
+    try:
+        if isinstance(node, ast.Name): return node.id
+        if isinstance(node, ast.Attribute):
+            p = get_call_name(node.value)
+            return (p + '.' + node.attr) if p else node.attr
+    except Exception: pass
+    return ''
+
+COST_PATTERNS = [
+    'completions.create','messages.create','generatecontent','generatetext','streamtext',
+    'chatcompletion.create','completion.create',
+    'axios.get','axios.post','axios.put','axios.delete','fetch',
+    'requests.get','requests.post','requests.put','requests.delete',
+    'httpx.get','httpx.post','httpx.put','httpx.delete',
+    'prisma.','findunique','findmany','findbyid','findone',
+    'dynamodb','docclient','table.scan','client.scan',
+]
+
+def is_costly(name): return any(p in name.lower() for p in COST_PATTERNS)
+
+class Visitor(ast.NodeVisitor):
+    def __init__(self):
+        self.loop_line = None
+        self.hits = []
+    def _loop(self, node):
+        prev = self.loop_line
+        self.loop_line = node.lineno
+        self.generic_visit(node)
+        self.loop_line = prev
+    visit_For = visit_While = visit_AsyncFor = _loop
+    def visit_Call(self, node):
+        if self.loop_line is not None:
+            name = get_call_name(node.func)
+            if name and is_costly(name):
+                self.hits.append({'line': node.lineno, 'col': node.col_offset, 'callName': name, 'loopStartLine': self.loop_line})
+        self.generic_visit(node)
+
+fp = sys.argv[1]
+try:
+    src = open(fp, encoding='utf-8', errors='replace').read()
+    v = Visitor()
+    v.visit(ast.parse(src, filename=fp))
+    print(json.dumps(v.hits))
+except SyntaxError:
+    print(json.dumps([]))
+`;
 
 export class LoopDetector implements OptimizationDetector {
     id = 'loop-detector';
@@ -29,16 +84,12 @@ export class LoopDetector implements OptimizationDetector {
     private cachePatterns = ['cache', 'redis', 'memcached', 'memoize', 'store', 'kv'];
 
     async analyze(context: FileContext, codeUnits?: CodeUnit[]): Promise<OptimizationSuggestion[]> {
-        const suggestions: OptimizationSuggestion[] = [];
         const isPython = context.languageId === 'python' || context.uri.fsPath.endsWith('.py');
 
         if (isPython) {
-            suggestions.push(...this.analyzePython(context.content, context.uri.toString()));
-        } else {
-            suggestions.push(...this.analyzeTypeScript(context.content, context.uri.toString()));
+            return this.analyzePython(context.uri.fsPath, context.content, context.uri.toString());
         }
-
-        return suggestions;
+        return this.analyzeTypeScript(context.content, context.uri.toString());
     }
 
     /**
@@ -162,13 +213,64 @@ export class LoopDetector implements OptimizationDetector {
     }
 
     /**
-     * Analyze Python using indentation/regex (Simple Heuristic for now)
+     * analyze python using ast subprocess (python 3.8+), falling back to indentation heuristic.
      */
-    private analyzePython(content: string, fileUri: string): OptimizationSuggestion[] {
+    private async analyzePython(filePath: string, content: string, fileUri: string): Promise<OptimizationSuggestion[]> {
+        const bin = await findPythonBin();
+        if (bin) {
+            try {
+                const stdout = await new Promise<string>((resolve, reject) => {
+                    execFile(bin, ['-c', PYTHON_LOOP_SCRIPT, filePath], {
+                        timeout: 10000,
+                        maxBuffer: 2 * 1024 * 1024,
+                    }, (err, out) => {
+                        if (err) reject(err);
+                        else resolve(out);
+                    });
+                });
+
+                const hits: Array<{ line: number; col: number; callName: string; loopStartLine: number }> = JSON.parse(stdout);
+                return hits.map(hit => {
+                    const loopText = content.split('\n').slice(hit.loopStartLine - 1).join('\n');
+                    const hasCache = this.cachePatterns.some(p => loopText.toLowerCase().includes(p));
+                    let title = 'Costly Operation in Loop';
+                    let description = `Detected potential costly operation '${hit.callName}' inside a loop. `;
+                    if (hasCache) {
+                        title = 'Verify Cache Effectiveness';
+                        description += `It looks like you have some caching logic, but verify it effectively reduces calls.`;
+                    } else {
+                        description += `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`;
+                    }
+                    return {
+                        id: `loop-cost-py-${hit.line}`,
+                        title,
+                        description,
+                        severity: (hasCache ? 'info' : 'warning') as 'info' | 'warning',
+                        location: {
+                            fileUri,
+                            startLine: hit.line,
+                            startColumn: hit.col,
+                            endLine: hit.line,
+                            endColumn: hit.col + hit.callName.length
+                        },
+                        costImpact: hasCache ? 'Low' : 'High'
+                    };
+                });
+            } catch {
+                // fall through to indentation heuristic
+            }
+        }
+
+        return this.analyzePythonFallback(content, fileUri);
+    }
+
+    /**
+     * indentation-based fallback for when python3 is not available.
+     */
+    private analyzePythonFallback(content: string, fileUri: string): OptimizationSuggestion[] {
         const suggestions: OptimizationSuggestion[] = [];
         const lines = content.split('\n');
-        
-        let loopIndentLevels: { indent: number, startLine: number }[] = []; 
+        let loopIndentLevels: { indent: number; startLine: number }[] = [];
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -176,50 +278,25 @@ export class LoopDetector implements OptimizationDetector {
             if (!trim || trim.startsWith('#')) continue;
 
             const indent = line.search(/\S/);
-            
-            // Manage loop stack
-            loopIndentLevels = loopIndentLevels.filter(level => level.indent < indent);
+            loopIndentLevels = loopIndentLevels.filter(l => l.indent < indent);
 
-            // Check if this line starts a loop
             if (trim.startsWith('for ') || trim.startsWith('while ')) {
                 loopIndentLevels.push({ indent, startLine: i });
             }
 
-            // If we are deep inside a loop
             if (loopIndentLevels.length > 0) {
                 const currentLoop = loopIndentLevels[loopIndentLevels.length - 1];
                 if (indent > currentLoop.indent) {
-                     // Check for costly calls
-                    const match = this.costPatterns.some(pattern => trim.toLowerCase().includes(pattern.toLowerCase()));
-                    
+                    const match = this.costPatterns.some(p => trim.toLowerCase().includes(p.toLowerCase()));
                     if (match && !trim.startsWith('for ') && !trim.startsWith('while ')) {
-                         // Naive check for cache in the "surrounding lines" (heuristic: look back a few lines or check if file has redis)
-                         // Since we stream read lines, checking "loop body" is hard without full AST. 
-                         // Check for cache keywords in THIS line or variable names
-                         const hasCache = this.cachePatterns.some(pattern => trim.toLowerCase().includes(pattern));
-
-                         let description = `Detected costly operation inside a loop (Python). '${trim}'`;
-                         let title = 'Costly Operation in Loop';
-
-                         if (hasCache) {
-                             description += ` Verify caching logic.`;
-                             title = 'Verify Cache Effectiveness';
-                         } else {
-                             description += ` Consider Redis/Memcached or Batching.`;
-                         }
-
-                         suggestions.push({
+                        const hasCache = this.cachePatterns.some(p => trim.toLowerCase().includes(p));
+                        suggestions.push({
                             id: `loop-cost-py-${i + 1}`,
-                            title: title,
-                            description: description,
+                            title: hasCache ? 'Verify Cache Effectiveness' : 'Costly Operation in Loop',
+                            description: `Detected costly operation inside a loop (Python). '${trim}'` +
+                                (hasCache ? ` Verify caching logic.` : ` Consider Redis/Memcached or Batching.`),
                             severity: hasCache ? 'info' : 'warning',
-                            location: {
-                                fileUri: fileUri,
-                                startLine: i + 1,
-                                startColumn: indent,
-                                endLine: i + 1,
-                                endColumn: line.length
-                            },
+                            location: { fileUri, startLine: i + 1, startColumn: indent, endLine: i + 1, endColumn: line.length },
                             costImpact: hasCache ? 'Low' : 'High'
                         });
                     }
