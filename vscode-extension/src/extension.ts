@@ -1,26 +1,24 @@
 /**
- * extension.ts - main entry point
- * wires together all components (parser, codelens, treeview)
+ * extension.ts — activation: wire parser, analysis refresh, providers, listeners.
  */
 
 import * as vscode from 'vscode';
 import { cost_codelens_provider } from './codelens_provider';
-import { cost_tree_provider } from './treeview_provider';
+import { cost_tree_provider } from './treeview';
 import { llm_call } from './types';
-import { initializeParser, indexWorkspace, getCachedGraph, extractModelFromCode, extractPromptFromCode } from './parser';
+import { initializeParser, indexWorkspace } from './parser';
 import { loadPricing } from './pricing_fetcher';
-import { hasLlmCallSite } from './data/provider_registry';
-import { calculate_cost, estimate_tokens } from './cost_calculator';
 import { OptimizationManager } from './optimization/manager';
 import { LoopDetector } from './optimization/detectors/loop_detector';
 import { PatternDetector } from './optimization/detectors/pattern_detector';
 import { IacDetector } from './iac/detector';
-import { OptimizationSuggestion } from './optimization/types';
 import { CostCodeActionProvider } from './code_action_provider';
 import { CostDecorationProvider } from './decoration_provider';
+import { refreshWorkspaceAnalysis } from './analysis/refresh_workspace_analysis';
+import { createBudgetStatusBar } from './ui/budget_status_bar';
+import { registerCostTrackerCommands } from './commands/register_commands';
 
 export function activate(context: vscode.ExtensionContext) {
-  // get workspace root
   const workspaceFolders = vscode.workspace.workspaceFolders;
   if (!workspaceFolders || workspaceFolders.length === 0) {
     vscode.window.showWarningMessage('Cost Tracker: No workspace folder found');
@@ -29,183 +27,60 @@ export function activate(context: vscode.ExtensionContext) {
 
   const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
-  // last computed calls — used by tab-switch handler to update decorations without re-scanning
   let cachedAllCalls: llm_call[] = [];
 
-  // timestamp of last budget warning — prevents spamming on every update
-  let lastBudgetWarnMs = 0;
-
-  // Helper function to collect all LLM calls from cached graph
-  const updateTreeviewWithAllCalls = async () => {
-    const graph = getCachedGraph();
-    if (!graph) return;
-
-    const allCalls: llm_call[] = [];
-    
-    // Iterate through all units and find LLM calls
-    for (const unit of graph.units) {
-      const classification = graph.classifications[unit.id];
-      
-      if (classification && classification.role === 'consumer') {
-        const isLlm = classification.category === 'llm';
-
-        // for llm units, verify there's an actual call site in the function body —
-        // skip utility functions that just live in a file that imports an llm sdk
-        if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) continue;
-
-        const model = isLlm ? extractModelFromCode(unit.body) : null;
-        const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
-        const tokens = isLlm ? estimate_tokens(promptText) : 0;
-        const cost = isLlm ? calculate_cost(model, tokens) : null;
-
-        allCalls.push({
-          line: unit.location.startLine,
-          file_path: unit.location.fileUri,
-          provider: classification.provider,
-          model,
-          prompt_text: promptText,
-          estimated_tokens: tokens,
-          estimated_cost: cost
-        });
-      }
-    }
-    
-    cachedAllCalls = allCalls;;
-    
-    // --- Run Optimization Analysis Globally ---
-    // Optimization: Debounce this heavily? For now, we just rely on explicit calls or save events.
-    // Optimization: Use FS read instead of openTextDocument to avoid heavy editor overhead.
-
-    const allSuggestions: OptimizationSuggestion[] = [];
-    const optManager = OptimizationManager.getInstance();
-
-    // Helper to process files safely and fast
-    const processFilesFast = async (uris: vscode.Uri[]) => {
-        // Process in chunks of 5 to avoid event loop blocking
-        const CHUNK_SIZE = 5;
-        for (let i = 0; i < uris.length; i += CHUNK_SIZE) {
-            const chunk = uris.slice(i, i + CHUNK_SIZE);
-            await Promise.all(chunk.map(async (uri) => {
-                try {
-                    // Fast read from disk
-                    const fileContent = await vscode.workspace.fs.readFile(uri);
-                    const text = new TextDecoder().decode(fileContent);
-                    const ext = uri.fsPath.split('.').pop() || '';
-                    
-                    const suggestions = await optManager.analyze({
-                        uri: uri,
-                        content: text,
-                        languageId: ext === 'ts' ? 'typescript' : ext === 'py' ? 'python' : ext
-                    });
-                    
-                    suggestions.forEach(s => allSuggestions.push(s));
-                } catch (e) {
-                    console.warn(`Skipping optim scan for ${uri.fsPath}: ${e}`);
-                }
-            }));
-            // Tiny yield to let UI breathe
-            await new Promise(r => setTimeout(r, 1)); 
-        }
-    };
-
-    // 1. Scan Config Files (Found by glob)
-    // Cache the glob result? For now, glob is relatively fast, but reading is slow.
-    const configFiles = await vscode.workspace.findFiles('**/*.{tf,yml,yaml,json}', '**/node_modules/**');
-    await processFilesFast(configFiles);
-
-    // 2. Scan Code Files (from graph)
-    const filePathsToScan = new Set<string>(allCalls.map(c => c.file_path || '').filter(Boolean));
-    if (vscode.window.activeTextEditor) {
-        filePathsToScan.add(vscode.window.activeTextEditor.document.uri.fsPath);
-    }
-    
-    // Convert to URIs
-    const codeUris = Array.from(filePathsToScan).map(p => vscode.Uri.file(p));
-    // Limit total scan to prevention locking up on massive repos
-    const limitedCodeUris = codeUris.slice(0, 50); 
-    await processFilesFast(limitedCodeUris);
-
-    // Dedup by ID
-    const uniqueSuggestions = Array.from(new Map(allSuggestions.map(s => [s.id + s.location.fileUri, s])).values());
-    
-    // Update tree provider efficiently (single refresh)
-    tree_provider.update_all_data(allCalls, graph, uniqueSuggestions);
-    
-    // Update status bar with new totals
-    const totalCost = allCalls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0);
-    const userCount = tree_provider.get_user_count();
-    updateStatusBar(totalCost, userCount);
-
-    // Update Decorations
-    if (vscode.window.activeTextEditor) {
-        decorationProvider.updateDecorations(vscode.window.activeTextEditor, allCalls);
-    }
-  };
-
-  // status bar
-  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  context.subscriptions.push(statusBarItem);
-
-  const updateStatusBar = (totalCost: number, userCount: number) => {
-    const config = vscode.workspace.getConfiguration('cost-tracker');
-    const budget = config.get<number>('monthlyBudget') || 500;
-    
-    // Calculate projected monthly cost based on current simulation settings
-    const dailyCost = totalCost * userCount;
-    const monthlyCost = dailyCost * 30;
-    
-    statusBarItem.text = `$(graph) $${monthlyCost.toFixed(2)} / $${budget}`;
-    statusBarItem.tooltip = `Projected Monthly Cost: $${monthlyCost.toFixed(2)}\nBudget: $${budget}`;
-    
-    // Color logic
-    if (monthlyCost >= budget) {
-      statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-    } else if (monthlyCost >= budget * 0.8) {
-      statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-      
-      // Show warning if not recently shown (basic debounce could be added here, 
-      // but for now we rely on the fact that this is called on updates)
-      // To avoid spam, we could check a timestamp, but let's keep it simple for MVP.
-    } else {
-      statusBarItem.backgroundColor = undefined; // Default color
-    }
-    
-    statusBarItem.show();
-    
-    // trigger notification if over 80% — throttled to once per 10 minutes
-    if (monthlyCost >= budget * 0.8) {
-      const now = Date.now();
-      if (now - lastBudgetWarnMs > 10 * 60 * 1000) {
-        lastBudgetWarnMs = now;
-        vscode.window.showWarningMessage(`Budget Alert: You've reached over 80% of your $${budget} monthly budget!`);
-      }
-    }
-  };
-
-
-  // codelens provider
   const codelens_provider = new cost_codelens_provider();
-  const codelens_disposable = vscode.languages.registerCodeLensProvider(
-    [
-      { language: 'python', scheme: 'file' },
-      { language: 'typescript', scheme: 'file' },
-      { language: 'javascript', scheme: 'file' }
-    ],
-    codelens_provider
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      [
+        { language: 'python', scheme: 'file' },
+        { language: 'typescript', scheme: 'file' },
+        { language: 'javascript', scheme: 'file' }
+      ],
+      codelens_provider
+    )
   );
-  context.subscriptions.push(codelens_disposable);
 
-  // treeview provider
   const tree_provider = new cost_tree_provider();
   const tree_view = vscode.window.createTreeView('cost-tracker-panel', {
     treeDataProvider: tree_provider
   });
   context.subscriptions.push(tree_view);
 
-  // load pricing in background — workspace indexing will use whatever is cached by the time it runs
+  const decorationProvider = new CostDecorationProvider();
+
+  const budgetStatusBar = createBudgetStatusBar(context);
+
+  const runRefresh = () =>
+    refreshWorkspaceAnalysis({
+      tree_provider,
+      decorationProvider,
+      updateStatusBar: budgetStatusBar.update,
+      onCallsUpdated: (calls) => {
+        cachedAllCalls = calls;
+      }
+    });
+
+  registerCostTrackerCommands(context, {
+    workspaceRoot,
+    tree_provider,
+    codelens_provider,
+    refreshWorkspaceAnalysis: runRefresh
+  });
+
+  const codeActionProvider = new CostCodeActionProvider();
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      ['python', 'typescript', 'javascript', 'json'],
+      codeActionProvider,
+      {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+      }
+    )
+  );
+
   loadPricing(context.globalStorageUri.fsPath).catch(() => { /* falls back to hardcoded table */ });
 
-  // Initialize parser system
   initializeParser(workspaceRoot).then(() => {
     const optManager = OptimizationManager.getInstance();
     optManager.registerDetector(new LoopDetector());
@@ -221,7 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
         progress.report({ increment: 0, message: 'Scanning files...' });
         await indexWorkspace(workspaceRoot);
         progress.report({ increment: 100, message: 'Complete!' });
-        await updateTreeviewWithAllCalls();
+        await runRefresh();
         vscode.window.showInformationMessage('Cost Tracker: Workspace indexed successfully');
         codelens_provider.refresh();
         tree_provider.refresh();
@@ -233,179 +108,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showErrorMessage(`Cost Tracker: Parser initialization failed - ${error}`);
   });
 
-  // --- Optimization Commands ---
-  // Register Code Action Provider (One-Click Savings)
-  const codeActionProvider = new CostCodeActionProvider();
-  context.subscriptions.push(
-      vscode.languages.registerCodeActionsProvider(
-          ['python', 'typescript', 'javascript', 'json'],
-          codeActionProvider,
-          {
-              providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
-          }
-      )
-  );
-
-  const show_suggestion_cmd = vscode.commands.registerCommand(
-      'cost-tracker.showSuggestionDetails',
-      (suggestion: OptimizationSuggestion) => {
-          vscode.window.showInformationMessage(
-              `Suggestion: ${suggestion.title}\n\n${suggestion.description}\n\nImpact: ${suggestion.costImpact}`,
-              'Learn More'
-          ).then(selection => {
-              if (selection === 'Learn More') {
-                  // Could open a link in future
-              }
-          });
-      }
-  );
-  context.subscriptions.push(show_suggestion_cmd);
-
-  // --- commands ---
-
-  // command to show cost details (used by codelens)
-  const show_details_cmd = vscode.commands.registerCommand(
-    'cost-tracker.showCostDetails',
-    (call: llm_call) => {
-      vscode.window.showInformationMessage(
-        `Cost Details:\n` +
-          `Provider: ${call.provider}\n` +
-          `Model: ${call.model}\n` +
-          `Line: ${call.line}\n` +
-          `Tokens: ~${call.estimated_tokens}\n` +
-          `Cost: ~$${Number(call.estimated_cost ?? 0).toFixed(4)}`
-      );
-    }
-  );
-  context.subscriptions.push(show_details_cmd);
-
-  // command to update user count (used by treeview)
-  const update_user_count_cmd = vscode.commands.registerCommand(
-    'cost-tracker.updateUserCount',
-    async () => {
-      const input = await vscode.window.showInputBox({
-        prompt: 'Enter daily user count for cost simulation',
-        value: '100',
-        validateInput: (value) => {
-          return isNaN(Number(value)) ? 'Please enter a valid number' : null;
-        }
-      });
-
-      if (input) {
-        tree_provider.update_user_count(Number(input));
-        
-        // Update status bar immediately
-        await updateTreeviewWithAllCalls(); 
-      }
-    }
-  );
-  context.subscriptions.push(update_user_count_cmd);
-
-  // command to refresh analysis
-  const refresh_cmd = vscode.commands.registerCommand(
-    'cost-tracker.refresh',
-    async () => {
-      // Re-index workspace
-      await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: 'Cost Tracker: Re-indexing workspace...',
-        cancellable: false
-      }, async (progress) => {
-        try {
-          await indexWorkspace(workspaceRoot);
-          await updateTreeviewWithAllCalls();
-          codelens_provider.refresh();
-          tree_provider.refresh();
-          vscode.window.showInformationMessage('Cost analysis refreshed');
-        } catch (error) {
-          vscode.window.showErrorMessage(`Refresh failed: ${error}`);
-        }
-      });
-    }
-  );
-  context.subscriptions.push(refresh_cmd);
-
-  // command to show call details from tree item
-  const show_call_details_cmd = vscode.commands.registerCommand(
-    'cost-tracker.showCallDetails',
-    (item) => {
-      if (item.call_data) {
-        const call = item.call_data;
-        vscode.window.showInformationMessage(
-          `${call.provider} • ${call.model}\nLine: ${call.line}\nTokens: ~${call.estimated_tokens}\nCost: ~$${call.estimated_cost.toFixed(6)}\nPrompt: "${call.prompt_text.substring(0, 50)}..."`
-        );
-      }
-    }
-  );
-  context.subscriptions.push(show_call_details_cmd);
-
-  // command to jump to code location from tree item
-  const jump_to_call_cmd = vscode.commands.registerCommand(
-    'cost-tracker.jumpToCall',
-    async (call: llm_call) => {
-      if (!call || !call.file_path) {
-        vscode.window.showWarningMessage('No file path available for this call');
-        return;
-      }
-
-      try {
-        const uri = vscode.Uri.file(call.file_path);
-        const document = await vscode.workspace.openTextDocument(uri);
-        const editor = await vscode.window.showTextDocument(document);
-        
-        // Jump to the line (convert 1-indexed to 0-indexed)
-        const line = Math.max(0, call.line - 1);
-        const position = new vscode.Position(line, 0);
-        const range = new vscode.Range(position, position);
-        
-        // Move cursor and reveal the line
-        editor.selection = new vscode.Selection(position, position);
-        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-      } catch (error) {
-        vscode.window.showErrorMessage(`Failed to open file: ${error}`);
-      }
-    }
-  );
-  context.subscriptions.push(jump_to_call_cmd);
-
-  // command to jump to optimization suggestion
-  const jump_to_suggestion_cmd = vscode.commands.registerCommand(
-      'cost-tracker.jumpToSuggestion',
-      async (suggestion: OptimizationSuggestion) => {
-          if (!suggestion || !suggestion.location || !suggestion.location.fileUri) {
-              vscode.window.showWarningMessage('No location data available for this suggestion');
-              return;
-          }
-
-          try {
-              const rawPath = suggestion.location.fileUri;
-              const uri = rawPath.startsWith('file:') ? vscode.Uri.parse(rawPath) : vscode.Uri.file(rawPath);
-                  
-              const document = await vscode.workspace.openTextDocument(uri);
-              const editor = await vscode.window.showTextDocument(document);
-
-              // 0-indexed conversion
-              const startLine = Math.max(0, suggestion.location.startLine - 1);
-              const startChar = Math.max(0, suggestion.location.startColumn - 1);
-              const endLine = Math.max(0, suggestion.location.endLine - 1);
-              const endChar = Math.max(0, suggestion.location.endColumn - 1);
-
-              const range = new vscode.Range(startLine, startChar, endLine, endChar);
-              editor.selection = new vscode.Selection(startLine, startChar, startLine, startChar);
-              editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-          } catch (error) {
-              vscode.window.showErrorMessage(`Failed to jump to suggestion: ${error}`);
-          }
-      }
-  );
-  context.subscriptions.push(jump_to_suggestion_cmd);
-
-  // --- decoration provider (visual heatmap) ---
-  const decorationProvider = new CostDecorationProvider();
-
-  // --- document listeners ---
-
-  // debounced re-index on save — 500ms cooldown to avoid re-scanning on rapid saves
   let saveDebounceTimer: ReturnType<typeof setTimeout> | undefined;
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
@@ -415,7 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
         saveDebounceTimer = setTimeout(async () => {
           try {
             await indexWorkspace(workspaceRoot);
-            await updateTreeviewWithAllCalls();
+            await runRefresh();
             codelens_provider.refresh();
             tree_provider.refresh();
           } catch (error) {
@@ -426,7 +128,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // on tab switch, only update decorations from cached calls — no re-scan
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
@@ -435,7 +136,6 @@ export function activate(context: vscode.ExtensionContext) {
       }
     })
   );
-
 }
 
 export function deactivate() {}
