@@ -3,16 +3,33 @@
  * Coordinates workspace indexing, AST parsing, and LLM classification
  */
 
-import * as vscode from 'vscode';
-import { llm_call, CodespaceGraph, FileNode, CodeUnit, ApiClassification, ContextBundle } from './types';
-import { scanWorkspace, createHashMap, getModifiedFiles } from './scanner';
-import { parseFile, bundleContext } from './ast_parser';
-import { initializeGemini } from './intelligence';
-import { hasLlmCallSite } from './data/provider_registry';
-import { initializeStore, saveIndex, loadIndex, saveFileHashes, loadFileHashes } from './store';
-import { estimate_tokens, calculate_cost } from './cost_calculator';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as vscode from "vscode";
+import {
+  llm_call,
+  CodespaceGraph,
+  FileNode,
+  CodeUnit,
+  ApiClassification,
+  ContextBundle,
+} from "./types";
+import { scanWorkspace, createHashMap, getModifiedFiles } from "./scanner";
+import { parseFile, bundleContext } from "./ast_parser";
+import {
+  initializeGemini,
+  batchClassifyApis,
+  getGenAI,
+} from "./intelligence.js";
+import { hasLlmCallSite } from "./data/provider_registry";
+import {
+  initializeStore,
+  saveIndex,
+  loadIndex,
+  saveFileHashes,
+  loadFileHashes,
+} from "./store";
+import { estimate_tokens, calculate_cost } from "./cost_calculator";
+import * as fs from "fs";
+import * as path from "path";
 
 // Global cache
 let cachedGraph: CodespaceGraph | null = null;
@@ -22,7 +39,10 @@ let cachedGraph: CodespaceGraph | null = null;
  * @param workspaceRoot - workspace root path
  * @param apiKey - optional Gemini API key
  */
-export async function initializeParser(workspaceRoot: string, apiKey?: string): Promise<void> {
+export async function initializeParser(
+  workspaceRoot: string,
+  apiKey?: string,
+): Promise<void> {
   await initializeStore(workspaceRoot);
   initializeGemini(apiKey);
 }
@@ -32,7 +52,14 @@ export async function initializeParser(workspaceRoot: string, apiKey?: string): 
  * @param rootPath - workspace root directory
  * @returns complete codespace graph
  */
-export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> {
+/**
+ * @param onGeminiRefinementComplete when set, gemini fallback runs async after quick index is saved (fast ui).
+ *   when omitted, gemini fallback is awaited so the returned graph includes llm refinements (e.g. analyzeWorkspace).
+ */
+export async function indexWorkspace(
+  rootPath: string,
+  onGeminiRefinementComplete?: () => void,
+): Promise<CodespaceGraph> {
   try {
     const previousGraph = await loadIndex(rootPath);
     const previousHashes = await loadFileHashes(rootPath);
@@ -42,21 +69,24 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
 
     // Parse modified files
     const allUnits: CodeUnit[] = previousGraph?.units || [];
-    const allClassifications: Record<string, ApiClassification> = previousGraph?.classifications || {};
+    const allClassifications: Record<string, ApiClassification> =
+      previousGraph?.classifications || {};
 
     // Collect all new units first
     const newUnitsToClassify: { unit: CodeUnit; bundle: ContextBundle }[] = [];
 
     for (const filePath of modifiedFilePaths) {
-      const unitsFromOtherFiles = allUnits.filter(u => u.location.fileUri !== filePath);
-      
+      const unitsFromOtherFiles = allUnits.filter(
+        (u) => u.location.fileUri !== filePath,
+      );
+
       // Parse and add new units
       const newUnits = await parseFile(filePath);
-      
+
       // Replace allUnits with units from other files + new units from this file
       allUnits.length = 0; // Clear array
       allUnits.push(...unitsFromOtherFiles, ...newUnits);
-      
+
       // Remove old classifications for units from this file
       for (const unitId in allClassifications) {
         if (unitId.includes(path.basename(filePath))) {
@@ -71,31 +101,72 @@ export async function indexWorkspace(rootPath: string): Promise<CodespaceGraph> 
       }
     }
 
-    // Batch classify all new units (1-2 API calls instead of 50+)
+    // quick classify new units, then optional gemini fallback (batched, capped)
     if (newUnitsToClassify.length > 0) {
-      const bundles = newUnitsToClassify.map(item => item.bundle);
-      const { batchClassifyApis } = await import('./intelligence.js');
-      const classifications = await batchClassifyApis(bundles, true);
+      const bundles = newUnitsToClassify.map((item) => item.bundle);
+      const quickClassifications = await batchClassifyApis(bundles, true);
       for (let i = 0; i < newUnitsToClassify.length; i++) {
-        allClassifications[newUnitsToClassify[i].unit.id] = classifications[i];
+        allClassifications[newUnitsToClassify[i].unit.id] =
+          quickClassifications[i];
+      }
+
+      const config = vscode.workspace.getConfiguration("quota");
+      const enhancedAi = config.get<boolean>("enhancedAiClassification", false);
+      const maxUnits = Math.max(
+        0,
+        Math.min(500, config.get<number>("enhancedAiMaxUnits", 40)),
+      );
+
+      if (enhancedAi && maxUnits > 0 && getGenAI()) {
+        const ambiguousIndices: number[] = [];
+        for (let i = 0; i < quickClassifications.length; i++) {
+          if (needsLlmFallback(quickClassifications[i])) {
+            ambiguousIndices.push(i);
+          }
+        }
+        const capped = ambiguousIndices.slice(0, maxUnits);
+        if (capped.length > 0) {
+          if (onGeminiRefinementComplete) {
+            void runGeminiRefinementAsync(
+              rootPath,
+              newUnitsToClassify,
+              capped,
+              quickClassifications,
+              batchClassifyApis,
+              onGeminiRefinementComplete,
+            );
+          } else {
+            const bundlesForLlm = capped.map((i) => bundles[i]);
+            const llmResults = await batchClassifyApis(bundlesForLlm, false);
+            applyLlmRefinement(
+              capped,
+              llmResults,
+              quickClassifications,
+              newUnitsToClassify,
+              allClassifications,
+            );
+          }
+        }
       }
     }
 
     // Build file nodes
-    const fileNodes: FileNode[] = files.map(file => ({
+    const fileNodes: FileNode[] = files.map((file) => ({
       path: file.path,
       hash: file.hash,
       lastModified: file.lastModified,
-      units: allUnits.filter(u => u.location.fileUri === file.path).map(u => u.id)
+      units: allUnits
+        .filter((u) => u.location.fileUri === file.path)
+        .map((u) => u.id),
     }));
 
     // Create graph
     const graph: CodespaceGraph = {
-      version: '1.0.0',
+      version: "1.0.0",
       timestamp: Date.now(),
       files: fileNodes,
       units: allUnits,
-      classifications: allClassifications
+      classifications: allClassifications,
     };
 
     // Save state
@@ -126,18 +197,20 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
   // Find units in this document
   const documentUri = document.uri.fsPath;
   const documentUnits = cachedGraph.units.filter(
-    u => u.location.fileUri === documentUri
+    (u) => u.location.fileUri === documentUri,
   );
 
   // Convert classified units to llm_call format
   for (const unit of documentUnits) {
     const classification = cachedGraph.classifications[unit.id];
 
-    if (classification && classification.role === 'consumer') {
-      const isLlm = classification.category === 'llm';
-      if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) {continue;}
+    if (classification && classification.role === "consumer") {
+      const isLlm = classification.category === "llm";
+      if (isLlm && !hasLlmCallSite(unit.body, classification.provider)) {
+        continue;
+      }
       const model = isLlm ? extractModelFromCode(unit.body) : null;
-      const promptText = isLlm ? extractPromptFromCode(unit.body) : '';
+      const promptText = isLlm ? extractPromptFromCode(unit.body) : "";
       const tokens = isLlm ? estimate_tokens(promptText) : 0;
       const cost = isLlm ? calculate_cost(model, tokens) : null;
 
@@ -148,7 +221,7 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
         model,
         prompt_text: promptText,
         estimated_tokens: tokens,
-        estimated_cost: cost
+        estimated_cost: cost,
       });
     }
   }
@@ -165,17 +238,19 @@ export function parse_llm_calls(document: vscode.TextDocument): llm_call[] {
 // extracts the model string from code. returns null if no model string is found.
 // no fallback defaults — unknown model means we can't estimate cost.
 export function extractModelFromCode(code: string): string | null {
-    const patterns = [
-        /\bmodel\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,
-        /\bmodelName\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,      // langchain
-        /\bengine\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,          // older openai api
-        /\bdeployment(?:Name)?\s*[:=]\s*["'`]([^"'`\n]+)["'`]/, // azure openai
-    ];
-    for (const pattern of patterns) {
-        const match = code.match(pattern);
-        if (match) {return match[1];}
+  const patterns = [
+    /\bmodel\s*[:=]\s*["'`]([^"'`\n]+)["'`]/,
+    /\bmodelName\s*[:=]\s*["'`]([^"'`\n]+)["'`]/, // langchain
+    /\bengine\s*[:=]\s*["'`]([^"'`\n]+)["'`]/, // older openai api
+    /\bdeployment(?:Name)?\s*[:=]\s*["'`]([^"'`\n]+)["'`]/, // azure openai
+  ];
+  for (const pattern of patterns) {
+    const match = code.match(pattern);
+    if (match) {
+      return match[1];
     }
-    return null;
+  }
+  return null;
 }
 
 /**
@@ -192,7 +267,7 @@ export function extractPromptFromCode(code: string): string {
 
   const messagesMatch = code.match(/messages\s*[:=]\s*\[(.*?)\]/s);
   if (messagesMatch) {
-    return messagesMatch[1].substring(0, 500); 
+    return messagesMatch[1].substring(0, 500);
   }
 
   return code.substring(0, 500);
@@ -212,13 +287,93 @@ export function getCachedGraph(): CodespaceGraph | null {
 export function clearCache(): void {
   cachedGraph = null;
 }
+
+function needsLlmFallback(c: ApiClassification): boolean {
+  return c.provider === "unknown" && c.category === "other";
+}
+
+function shouldPreferLlmResult(
+  quick: ApiClassification,
+  llm: ApiClassification,
+): boolean {
+  if (llm.provider !== "unknown" && quick.provider === "unknown") {
+    return true;
+  }
+  if (
+    llm.role === "consumer" &&
+    quick.role !== "consumer" &&
+    llm.category !== "other"
+  ) {
+    return true;
+  }
+  if (llm.confidence > quick.confidence && llm.confidence >= 0.35) {
+    return true;
+  }
+  return false;
+}
+
+function applyLlmRefinement(
+  cappedIndices: number[],
+  llmResults: ApiClassification[],
+  quickClassifications: ApiClassification[],
+  newUnitsToClassify: { unit: CodeUnit; bundle: ContextBundle }[],
+  allClassifications: Record<string, ApiClassification>,
+): void {
+  for (let j = 0; j < cappedIndices.length; j++) {
+    const i = cappedIndices[j];
+    const quick = quickClassifications[i];
+    const llm = llmResults[j];
+    if (shouldPreferLlmResult(quick, llm)) {
+      allClassifications[newUnitsToClassify[i].unit.id] = llm;
+    }
+  }
+}
+
+async function runGeminiRefinementAsync(
+  rootPath: string,
+  newUnitsToClassify: { unit: CodeUnit; bundle: ContextBundle }[],
+  cappedIndices: number[],
+  quickClassifications: ApiClassification[],
+  batchClassifyApisFn: (
+    bundles: ContextBundle[],
+    useQuickDetection: boolean,
+  ) => Promise<ApiClassification[]>,
+  onComplete?: () => void,
+): Promise<void> {
+  try {
+    const bundlesForLlm = cappedIndices.map(
+      (i) => newUnitsToClassify[i].bundle,
+    );
+    const llmResults = await batchClassifyApisFn(bundlesForLlm, false);
+    const g = getCachedGraph();
+    if (!g) {
+      onComplete?.();
+      return;
+    }
+    for (let j = 0; j < cappedIndices.length; j++) {
+      const i = cappedIndices[j];
+      const quick = quickClassifications[i];
+      const llm = llmResults[j];
+      if (shouldPreferLlmResult(quick, llm)) {
+        g.classifications[newUnitsToClassify[i].unit.id] = llm;
+      }
+    }
+    await saveIndex(rootPath, g);
+    cachedGraph = g;
+  } catch (e) {
+    console.warn("quota: gemini refinement failed", e);
+  } finally {
+    onComplete?.();
+  }
+}
+
 /**
  * Main function to analyze workspace - Simple API for extension use
- * 
+ *
  * @param workspaceRoot - Root directory of workspace
  * @param options - Configuration options
  * @returns Analysis results with detected APIs
- * 
+ *
  * @example
  * ```typescript
  * const results = await analyzeWorkspace('/path/to/workspace', {
@@ -227,7 +382,7 @@ export function clearCache(): void {
  *   forceClean: false,
  *   onProgress: (message) => console.log(message)
  * });
- * 
+ *
  * console.log(`Found ${results.totalApis} paid APIs`);
  * console.log(`Categories:`, results.byCategory);
  * ```
@@ -235,12 +390,12 @@ export function clearCache(): void {
 export async function analyzeWorkspace(
   workspaceRoot: string,
   options: {
-    useGemini?: boolean;          // Use Gemini classification (default: true for quick detection)
-    scope?: string;               // Limit to specific directory
-    forceClean?: boolean;         // Remove existing index
-    geminiApiKey?: string;        // Gemini API key (optional, reads from env)
-    onProgress?: (message: string) => void;  // Progress callback
-  } = {}
+    useGemini?: boolean; // Use Gemini classification (default: true for quick detection)
+    scope?: string; // Limit to specific directory
+    forceClean?: boolean; // Remove existing index
+    geminiApiKey?: string; // Gemini API key (optional, reads from env)
+    onProgress?: (message: string) => void; // Progress callback
+  } = {},
 ): Promise<{
   success: boolean;
   graph: CodespaceGraph;
@@ -264,28 +419,28 @@ export async function analyzeWorkspace(
   error?: string;
 }> {
   const startTime = Date.now();
-  const progress = options.onProgress || (() => { });
+  const progress = options.onProgress || (() => {});
 
   try {
     // Clean index if requested
     if (options.forceClean) {
-      progress('Cleaning existing index...');
-      const analyticsDir = path.join(workspaceRoot, '.delta-analytics-config');
+      progress("Cleaning existing index...");
+      const analyticsDir = path.join(workspaceRoot, ".delta-analytics-config");
       if (fs.existsSync(analyticsDir)) {
         fs.rmSync(analyticsDir, { recursive: true, force: true });
-        progress('Removed .delta-analytics-config/');
+        progress("Removed .delta-analytics-config/");
       }
     }
 
     // Initialize parser
-    progress('Initializing parser...');
+    progress("Initializing parser...");
     await initializeParser(workspaceRoot, options.geminiApiKey);
-    progress('Parser initialized');
+    progress("Parser initialized");
 
     // Index workspace
-    progress('Starting workspace indexing...');
+    progress("Starting workspace indexing...");
     const graph = await indexWorkspace(workspaceRoot);
-    progress('Indexing complete');
+    progress("Indexing complete");
 
     // Calculate statistics
     const stats = {
@@ -294,12 +449,17 @@ export async function analyzeWorkspace(
       classifications: Object.keys(graph.classifications).length,
       totalApis: 0,
       byCategory: {} as Record<string, number>,
-      byProvider: {} as Record<string, number>
+      byProvider: {} as Record<string, number>,
     };
 
     // Analyze classifications
-    for (const [unitId, classification] of Object.entries(graph.classifications)) {
-      if (classification.role === 'consumer' && classification.category !== 'other') {
+    for (const [unitId, classification] of Object.entries(
+      graph.classifications,
+    )) {
+      if (
+        classification.role === "consumer" &&
+        classification.category !== "other"
+      ) {
         stats.totalApis++;
 
         // Count by category
@@ -318,12 +478,12 @@ export async function analyzeWorkspace(
 
     // Get sample detections
     const sampleDetections = graph.units
-      .filter(u => {
+      .filter((u) => {
         const c = graph.classifications[u.id];
-        return c && c.role === 'consumer' && c.category !== 'other';
+        return c && c.role === "consumer" && c.category !== "other";
       })
       .slice(0, 10)
-      .map(u => {
+      .map((u) => {
         const c = graph.classifications[u.id];
         return {
           name: u.name,
@@ -331,7 +491,7 @@ export async function analyzeWorkspace(
           line: u.location.startLine,
           provider: c.provider,
           category: c.category,
-          confidence: c.confidence
+          confidence: c.confidence,
         };
       });
 
@@ -343,25 +503,30 @@ export async function analyzeWorkspace(
       graph,
       stats,
       sampleDetections,
-      duration
+      duration,
     };
-
   } catch (error) {
     const duration = (Date.now() - startTime) / 1000;
     return {
       success: false,
-      graph: { version: '1.0.0', timestamp: Date.now(), files: [], units: [], classifications: {} },
+      graph: {
+        version: "1.0.0",
+        timestamp: Date.now(),
+        files: [],
+        units: [],
+        classifications: {},
+      },
       stats: {
         filesIndexed: 0,
         codeUnits: 0,
         classifications: 0,
         totalApis: 0,
         byCategory: {},
-        byProvider: {}
+        byProvider: {},
       },
       sampleDetections: [],
       duration,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 }

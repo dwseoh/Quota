@@ -61,11 +61,18 @@ export function activate(context: vscode.ExtensionContext) {
       },
     });
 
+  const onGeminiRefinementComplete = () => {
+    void runRefresh();
+    codelens_provider.refresh();
+    tree_provider.refresh();
+  };
+
   registerQuotaCommands(context, {
     workspaceRoot,
     tree_provider,
     codelens_provider,
     refreshWorkspaceAnalysis: runRefresh,
+    onGeminiRefinementComplete,
   });
 
   const codeActionProvider = new CostCodeActionProvider();
@@ -99,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
         async (progress) => {
           try {
             progress.report({ increment: 0, message: "Scanning files..." });
-            await indexWorkspace(workspaceRoot);
+            await indexWorkspace(workspaceRoot, onGeminiRefinementComplete);
             progress.report({ increment: 100, message: "Complete!" });
             await runRefresh();
             vscode.window.showInformationMessage(
@@ -132,7 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
         clearTimeout(saveDebounceTimer);
         saveDebounceTimer = setTimeout(async () => {
           try {
-            await indexWorkspace(workspaceRoot);
+            await indexWorkspace(workspaceRoot, onGeminiRefinementComplete);
             await runRefresh();
             codelens_provider.refresh();
             tree_provider.refresh();

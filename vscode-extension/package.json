@@ -99,6 +99,18 @@
           "type": "number",
           "default": 500,
           "description": "Monthly budget limit in USD for cost alerts"
+        },
+        "quota.enhancedAiClassification": {
+          "type": "boolean",
+          "default": false,
+          "description": "After quick import-based detection, use Gemini on ambiguous units (unknown provider). Slower; requires GEMINI_API_KEY."
+        },
+        "quota.enhancedAiMaxUnits": {
+          "type": "number",
+          "default": 40,
+          "minimum": 0,
+          "maximum": 500,
+          "description": "Max code units per index run sent to Gemini when enhanced AI is on (0 disables Gemini calls)."
         }
       }
     },

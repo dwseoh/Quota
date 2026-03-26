@@ -14,10 +14,12 @@ export interface RegisterCommandsDeps {
   tree_provider: cost_tree_provider;
   codelens_provider: cost_codelens_provider;
   refreshWorkspaceAnalysis: () => Promise<void>;
+  /** when gemini finishes async refinement after quick index */
+  onGeminiRefinementComplete?: () => void;
 }
 
 export function registerQuotaCommands(context: vscode.ExtensionContext, deps: RegisterCommandsDeps): void {
-  const { workspaceRoot, tree_provider, codelens_provider, refreshWorkspaceAnalysis } = deps;
+  const { workspaceRoot, tree_provider, codelens_provider, refreshWorkspaceAnalysis, onGeminiRefinementComplete } = deps;
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -81,7 +83,7 @@ export function registerQuotaCommands(context: vscode.ExtensionContext, deps: Re
           cancellable: false
         }, async () => {
           try {
-            await indexWorkspace(workspaceRoot);
+            await indexWorkspace(workspaceRoot, onGeminiRefinementComplete);
             await refreshWorkspaceAnalysis();
             codelens_provider.refresh();
             tree_provider.refresh();
