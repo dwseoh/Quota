@@ -158,7 +158,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       'simulator_item'
     ));
 
-    const config = vscode.workspace.getConfiguration('cost-tracker');
+    const config = vscode.workspace.getConfiguration('quota');
     const budget = config.get<number>('monthlyBudget') || 500;
 
     let bankruptcyText = '';

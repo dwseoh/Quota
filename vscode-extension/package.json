@@ -1,5 +1,5 @@
 {
-  "name": "cost-tracker",
+  "name": "quota",
   "displayName": "Quota",
   "description": "Track and optimize costs in your codebase",
   "version": "0.0.1",
@@ -19,41 +19,53 @@
   "contributes": {
     "commands": [
       {
-        "command": "cost-tracker.showCostDetails",
+        "command": "quota.showCostDetails",
         "title": "Show Cost Details"
       },
       {
-        "command": "cost-tracker.updateUserCount",
+        "command": "quota.updateUserCount",
         "title": "Update User Count for Simulation",
         "icon": "$(edit)"
       },
       {
-        "command": "cost-tracker.refresh",
+        "command": "quota.refresh",
         "title": "Refresh Cost Analysis",
         "icon": "$(refresh)"
       },
       {
-        "command": "cost-tracker.toggleMockData",
+        "command": "quota.toggleMockData",
         "title": "Toggle Mock Data (Testing)"
       },
       {
-        "command": "cost-tracker.showCallDetails",
+        "command": "quota.showCallDetails",
         "title": "Show Call Details"
+      },
+      {
+        "command": "quota.showSuggestionDetails",
+        "title": "Show Optimization Suggestion Details"
+      },
+      {
+        "command": "quota.jumpToCall",
+        "title": "Jump to LLM Call"
+      },
+      {
+        "command": "quota.jumpToSuggestion",
+        "title": "Jump to Optimization Suggestion"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "cost-tracker-sidebar",
+          "id": "quota-sidebar",
           "title": "Quota",
           "icon": "media/logo.svg"
         }
       ]
     },
     "views": {
-      "cost-tracker-sidebar": [
+      "quota-sidebar": [
         {
-          "id": "cost-tracker-panel",
+          "id": "quota-panel",
           "name": "Quota",
           "icon": "media/logo.svg"
         }
@@ -62,28 +74,28 @@
     "menus": {
       "view/title": [
         {
-          "command": "cost-tracker.refresh",
-          "when": "view == cost-tracker-panel",
+          "command": "quota.refresh",
+          "when": "view == quota-panel",
           "group": "navigation"
         },
         {
-          "command": "cost-tracker.updateUserCount",
-          "when": "view == cost-tracker-panel",
+          "command": "quota.updateUserCount",
+          "when": "view == quota-panel",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "cost-tracker.showCallDetails",
-          "when": "view == cost-tracker-panel && viewItem == call_item",
+          "command": "quota.showCallDetails",
+          "when": "view == quota-panel && viewItem == call_item",
           "group": "inline"
         }
       ]
     },
     "configuration": {
-      "title": "Cost Tracker",
+      "title": "Quota",
       "properties": {
-        "cost-tracker.monthlyBudget": {
+        "quota.monthlyBudget": {
           "type": "number",
           "default": 500,
           "description": "Monthly budget limit in USD for cost alerts"

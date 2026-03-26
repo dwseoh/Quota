@@ -34,7 +34,7 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
 
       const command: vscode.Command = {
         title,
-        command: "cost-tracker.showCostDetails",
+        command: "quota.showCostDetails",
         arguments: [call]
       };
 
@@ -55,7 +55,7 @@ export class cost_codelens_provider implements vscode.CodeLensProvider {
             
             const command: vscode.Command = {
                 title: `${icon} suggestion: ${suggestion.title.toLowerCase()}`,
-                command: 'cost-tracker.showSuggestionDetails',
+                command: 'quota.showSuggestionDetails',
                 arguments: [suggestion]
             };
             

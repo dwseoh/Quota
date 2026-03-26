@@ -14,7 +14,7 @@ export function createBudgetStatusBar(context: vscode.ExtensionContext): BudgetS
   context.subscriptions.push(statusBarItem);
 
   const update = (totalCost: number, userCount: number) => {
-    const config = vscode.workspace.getConfiguration('cost-tracker');
+    const config = vscode.workspace.getConfiguration('quota');
     const budget = config.get<number>('monthlyBudget') || 500;
 
     const dailyCost = totalCost * userCount;

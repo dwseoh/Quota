@@ -1,5 +1,5 @@
 /**
- * registers cost-tracker commands (details, refresh, jump, suggestions).
+ * registers quota commands (details, refresh, jump, suggestions).
  */
 
 import * as vscode from 'vscode';
@@ -16,12 +16,12 @@ export interface RegisterCommandsDeps {
   refreshWorkspaceAnalysis: () => Promise<void>;
 }
 
-export function registerCostTrackerCommands(context: vscode.ExtensionContext, deps: RegisterCommandsDeps): void {
+export function registerQuotaCommands(context: vscode.ExtensionContext, deps: RegisterCommandsDeps): void {
   const { workspaceRoot, tree_provider, codelens_provider, refreshWorkspaceAnalysis } = deps;
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.showSuggestionDetails',
+      'quota.showSuggestionDetails',
       (suggestion: OptimizationSuggestion) => {
         vscode.window.showInformationMessage(
           `Suggestion: ${suggestion.title}\n\n${suggestion.description}\n\nImpact: ${suggestion.costImpact}`,
@@ -37,7 +37,7 @@ export function registerCostTrackerCommands(context: vscode.ExtensionContext, de
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.showCostDetails',
+      'quota.showCostDetails',
       (call: llm_call) => {
         vscode.window.showInformationMessage(
           `Cost Details:\n` +
@@ -53,7 +53,7 @@ export function registerCostTrackerCommands(context: vscode.ExtensionContext, de
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.updateUserCount',
+      'quota.updateUserCount',
       async () => {
         const input = await vscode.window.showInputBox({
           prompt: 'Enter daily user count for cost simulation',
@@ -73,11 +73,11 @@ export function registerCostTrackerCommands(context: vscode.ExtensionContext, de
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.refresh',
+      'quota.refresh',
       async () => {
         await vscode.window.withProgress({
           location: vscode.ProgressLocation.Notification,
-          title: 'Cost Tracker: Re-indexing workspace...',
+          title: 'Quota: Re-indexing workspace...',
           cancellable: false
         }, async () => {
           try {
@@ -96,7 +96,7 @@ export function registerCostTrackerCommands(context: vscode.ExtensionContext, de
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.showCallDetails',
+      'quota.showCallDetails',
       (item) => {
         if (item.call_data) {
           const call = item.call_data;
@@ -110,7 +110,7 @@ export function registerCostTrackerCommands(context: vscode.ExtensionContext, de
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.jumpToCall',
+      'quota.jumpToCall',
       async (call: llm_call) => {
         if (!call || !call.file_path) {
           vscode.window.showWarningMessage('No file path available for this call');
@@ -137,7 +137,7 @@ export function registerCostTrackerCommands(context: vscode.ExtensionContext, de
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-      'cost-tracker.jumpToSuggestion',
+      'quota.jumpToSuggestion',
       async (suggestion: OptimizationSuggestion) => {
         if (!suggestion || !suggestion.location || !suggestion.location.fileUri) {
           vscode.window.showWarningMessage('No location data available for this suggestion');

@@ -18,8 +18,8 @@ this is the vscode extension for tracking api costs. it uses tree-sitter to pars
 
 ## commands
 
-- `cost tracker: refresh cost analysis`: re-scans everything.
-- `cost tracker: update user count`: changes the projection math.
+- **quota: refresh cost analysis** — re-scans everything.
+- **quota: update user count** — changes the projection math.
 
 ## testing
 

@@ -41,7 +41,7 @@ export class cost_tree_item extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon('symbol-method', new vscode.ThemeColor('quota.icon.normal'));
         this.description = call_data ? `line ${call_data.line}` : '';
         this.command = {
-          command: 'cost-tracker.jumpToCall',
+          command: 'quota.jumpToCall',
           title: 'Jump to Call',
           arguments: [call_data]
         };
@@ -69,7 +69,7 @@ export class cost_tree_item extends vscode.TreeItem {
       case 'action_button':
         this.iconPath = new vscode.ThemeIcon('edit');
         this.command = {
-          command: 'cost-tracker.updateUserCount',
+          command: 'quota.updateUserCount',
           title: 'Update User Count'
         };
         break;
@@ -98,7 +98,7 @@ export class cost_tree_item extends vscode.TreeItem {
         }
         this.description = optimization_data?.costImpact ? `${optimization_data.costImpact} Impact` : '';
         this.command = {
-          command: 'cost-tracker.jumpToSuggestion',
+          command: 'quota.jumpToSuggestion',
           title: 'Jump to Code',
           arguments: [optimization_data]
         };
