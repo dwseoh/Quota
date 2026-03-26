@@ -124,7 +124,6 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   private suggestions: OptimizationSuggestion[] = [];
   private project_graph: CodespaceGraph | null = null;
   private user_count: number = 100;
-  private use_mock_data: boolean = false;
 
   /**
    * get tree item
@@ -168,11 +167,8 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
   private get_root_items(): cost_tree_item[] {
     const items: cost_tree_item[] = [];
     
-    // use mock data if parser isn't ready yet
-    const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
-    const total_cost = this.use_mock_data 
-        ? calls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0)
-        : this.total_cost_cache;
+    const calls = this.detected_calls;
+    const total_cost = this.total_cost_cache;
     const call_count = calls.length;
     
     // summary section
@@ -218,8 +214,8 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
    * get individual call items
    */
   private get_call_items(): cost_tree_item[] {
-    const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
-    
+    const calls = this.detected_calls;
+
     // Sort by cost (High -> Low)
     calls.sort((a, b) => (b.estimated_cost ?? -1) - (a.estimated_cost ?? -1));
 
@@ -258,8 +254,7 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
    */
   private get_simulator_items(): cost_tree_item[] {
     const items: cost_tree_item[] = [];
-    const calls = this.use_mock_data ? this.get_mock_data() : this.detected_calls;
-    const total_cost = calls.reduce((sum, call) => sum + (call.estimated_cost ?? 0), 0);
+    const total_cost = this.total_cost_cache;
     
     // current settings
     items.push(new cost_tree_item(
@@ -377,46 +372,6 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
       return items;
   }
 
-  /**
-   * get mock data for testing (remove when parser is ready)
-   */
-  private get_mock_data(): llm_call[] {
-    return [
-      {
-        line: 5,
-        provider: 'openai',
-        model: 'gpt-4-32k',
-        prompt_text: 'Analyzing entire repository codebase...',
-        estimated_tokens: 12500,
-        estimated_cost: 0.75 // High cost
-      },
-      {
-        line: 12,
-        provider: 'anthropic',
-        model: 'claude-3-opus',
-        prompt_text: 'Complex reasoning task...',
-        estimated_tokens: 4000,
-        estimated_cost: 0.06 // Medium cost
-      },
-      {
-        line: 25,
-        provider: 'openai',
-        model: 'gpt-4',
-        prompt_text: 'hello world this is a test prompt',
-        estimated_tokens: 500,
-        estimated_cost: 0.015
-      },
-      {
-        line: 42,
-        provider: 'openai',
-        model: 'gpt-3.5-turbo',
-        prompt_text: 'simple completion',
-        estimated_tokens: 50,
-        estimated_cost: 0.0001
-      }
-    ];
-  }
-
   // Cached display data
   private top_expensive_files: { path: string; cost: number }[] = [];
   private total_cost_cache: number = 0;
@@ -426,7 +381,6 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
    */
   update_all_data(calls: llm_call[], graph: CodespaceGraph, suggestions: OptimizationSuggestion[]) {
       this.detected_calls = calls;
-      this.use_mock_data = false;
       this.project_graph = graph;
       this.suggestions = suggestions;
       
@@ -490,7 +444,6 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
 
   update_calls(calls: llm_call[]): void {
     this.detected_calls = calls;
-    this.use_mock_data = false;
     this.recalculate_stats();
     this.refresh();
   }
@@ -516,14 +469,6 @@ export class cost_tree_provider implements vscode.TreeDataProvider<cost_tree_ite
    */
   get_user_count(): number {
     return this.user_count;
-  }
-
-  /**
-   * toggle mock data (for testing)
-   */
-  toggle_mock_data(): void {
-    this.use_mock_data = !this.use_mock_data;
-    this.refresh();
   }
 
   /**

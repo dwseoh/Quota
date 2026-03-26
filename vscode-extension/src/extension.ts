@@ -32,6 +32,9 @@ export function activate(context: vscode.ExtensionContext) {
   // last computed calls — used by tab-switch handler to update decorations without re-scanning
   let cachedAllCalls: llm_call[] = [];
 
+  // timestamp of last budget warning — prevents spamming on every update
+  let lastBudgetWarnMs = 0;
+
   // Helper function to collect all LLM calls from cached graph
   const updateTreeviewWithAllCalls = async () => {
     const graph = getCachedGraph();
@@ -169,11 +172,13 @@ export function activate(context: vscode.ExtensionContext) {
     
     statusBarItem.show();
     
-    // Trigger notification if over 80%
+    // trigger notification if over 80% — throttled to once per 10 minutes
     if (monthlyCost >= budget * 0.8) {
-      // Prevent spamming: using VS Code's built-in suppression for identical messages isn't always enough if params change slightly
-      // For MVP, we'll just show it. VS Code handles duplicate messages well.
-      vscode.window.showWarningMessage(`Budget Alert: You've reached over 80% of your $${budget} monthly budget!`);
+      const now = Date.now();
+      if (now - lastBudgetWarnMs > 10 * 60 * 1000) {
+        lastBudgetWarnMs = now;
+        vscode.window.showWarningMessage(`Budget Alert: You've reached over 80% of your $${budget} monthly budget!`);
+      }
     }
   };
 
@@ -319,16 +324,6 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(refresh_cmd);
-
-  // command to toggle mock data (for testing)
-  const toggle_mock_cmd = vscode.commands.registerCommand(
-    'cost-tracker.toggleMockData',
-    () => {
-      tree_provider.toggle_mock_data();
-      vscode.window.showInformationMessage('Toggled mock data for testing');
-    }
-  );
-  context.subscriptions.push(toggle_mock_cmd);
 
   // command to show call details from tree item
   const show_call_details_cmd = vscode.commands.registerCommand(

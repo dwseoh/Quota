@@ -45,8 +45,8 @@ export async function scanWorkspace(rootPath: string): Promise<FileEntry[]> {
                     });
                 }
             }
-        } catch (error) {
-            console.error(`Error scanning directory ${dir}:`, error);
+        } catch {
+            // skip unreadable directories
         }
     }
 
@@ -63,8 +63,7 @@ export async function computeFileHash(filePath: string): Promise<string> {
     try {
         const content = await fs.promises.readFile(filePath, 'utf-8');
         return crypto.createHash('md5').update(content).digest('hex');
-    } catch (error) {
-        console.error(`Error hashing file ${filePath}:`, error);
+    } catch {
         return '';
     }
 }

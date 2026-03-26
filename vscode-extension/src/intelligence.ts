@@ -22,7 +22,6 @@ export function initializeGemini(apiKey?: string): void {
     const key = apiKey || process.env.GEMINI_API_KEY;
 
     if (!key) {
-        console.warn('GEMINI_API_KEY not found. API classification will be disabled.');
         return;
     }
 
@@ -64,8 +63,7 @@ export async function classifyApiUsage(
         // Parse JSON response
         const classification = parseClassificationResponse(response);
         return classification;
-    } catch (error) {
-        console.error('Error classifying API usage:', error);
+    } catch {
         return {
             role: 'none',
             category: 'other',
@@ -95,14 +93,14 @@ ${bundle.imports}
 
 Tasks:
 1. Determine if this code is a "consumer" (calls external APIs), "provider" (defines API endpoints), or "none" (neither).
-2. Identify the API category: "llm", "payment", "weather", "database", or "other".
+2. Identify the API category: "llm", "payment", "database", "cloud", "communication", "auth", "monitoring", "search", "maps", or "other".
 3. Identify the specific provider (e.g., "openai", "anthropic", "stripe", "aws", "mongodb").
 4. Provide a confidence score between 0 and 1.
 
 Return ONLY a JSON object in this exact format (no markdown, no explanation):
 {
   "role": "consumer|provider|none",
-  "category": "llm|payment|weather|database|other",
+  "category": "llm|payment|database|cloud|communication|auth|monitoring|search|maps|other",
   "provider": "provider_name",
   "confidence": 0.95
 }`;
@@ -131,8 +129,7 @@ function parseClassificationResponse(response: string): ApiClassification {
             provider: parsed.provider || 'unknown',
             confidence: parsed.confidence || 0
         };
-    } catch (error) {
-        console.error('Error parsing classification response:', error);
+    } catch {
         return {
             role: 'none',
             category: 'other',
@@ -253,9 +250,7 @@ export async function batchClassifyApis(
         const classifications = parseBatchResponse(response, bundles.length);
         return classifications;
 
-    } catch (error) {
-        console.error('Error in batch classification:', error);
-        // Return default classifications
+    } catch {
         return bundles.map(() => ({
             role: 'none',
             category: 'other',
@@ -349,9 +344,7 @@ function parseBatchResponse(
 
         return results;
 
-    } catch (error) {
-        console.error('Error parsing batch response:', error);
-        // Return defaults
+    } catch {
         return Array(expectedCount).fill({
             role: 'none',
             category: 'other',
