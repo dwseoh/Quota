@@ -113,6 +113,57 @@ export const JS_PACKAGES: Record<string, ProviderInfo> = {
     '@googlemaps/google-maps-services-js': { provider: 'google-maps', category: 'maps' },
 };
 
+// c# namespace prefixes and nuget package ids → provider info
+// matches both `using` statement namespaces and .csproj PackageReference Include values
+export const CSHARP_PACKAGES: Record<string, ProviderInfo> = {
+    // llm
+    'OpenAI':                       { provider: 'openai',      category: 'llm' },
+    'Azure.AI.OpenAI':              { provider: 'openai',      category: 'llm' },
+    'Anthropic':                    { provider: 'anthropic',   category: 'llm' },
+    'Anthropic.SDK':                { provider: 'anthropic',   category: 'llm' },
+    'Microsoft.SemanticKernel':     { provider: 'langchain',   category: 'llm' },
+    'LangChain':                    { provider: 'langchain',   category: 'llm' },
+    'Betalgo.Ranul.OpenAI':         { provider: 'openai',      category: 'llm' },
+
+    // payment
+    'Stripe':                       { provider: 'stripe',      category: 'payment' },
+    'Braintree':                    { provider: 'braintree',   category: 'payment' },
+    'PayPalCheckoutSdk':            { provider: 'paypal',      category: 'payment' },
+
+    // database
+    'MongoDB':                      { provider: 'mongodb',     category: 'database' },
+    'Supabase':                     { provider: 'supabase',    category: 'database' },
+    'StackExchange.Redis':          { provider: 'redis',       category: 'database' },
+    'Npgsql':                       { provider: 'postgres',    category: 'database' },
+    'MySql.Data':                   { provider: 'mysql',       category: 'database' },
+    'MySqlConnector':               { provider: 'mysql',       category: 'database' },
+
+    // communication
+    'Twilio':                       { provider: 'twilio',      category: 'communication' },
+    'SendGrid':                     { provider: 'sendgrid',    category: 'communication' },
+    'Resend':                       { provider: 'resend',      category: 'communication' },
+
+    // cloud
+    'Amazon':                       { provider: 'aws',         category: 'cloud' },
+    'AWSSDK':                       { provider: 'aws',         category: 'cloud' },
+    'Google.Cloud':                 { provider: 'gcp',         category: 'cloud' },
+    'Azure':                        { provider: 'azure',       category: 'cloud' },
+    'Cloudinary':                   { provider: 'cloudinary',  category: 'cloud' },
+
+    // search / vector
+    'Pinecone':                     { provider: 'pinecone',    category: 'search' },
+    'Elastic':                      { provider: 'elasticsearch', category: 'search' },
+    'Algolia':                      { provider: 'algolia',     category: 'search' },
+
+    // monitoring
+    'Sentry':                       { provider: 'sentry',      category: 'monitoring' },
+    'Datadog':                      { provider: 'datadog',     category: 'monitoring' },
+    'PostHog':                      { provider: 'posthog',     category: 'monitoring' },
+
+    // auth
+    'Auth0':                        { provider: 'auth0',       category: 'auth' },
+};
+
 // java package prefixes → provider info
 // java imports are dotted class paths (e.g. com.openai.OpenAIClient) — prefix match on root package
 export const JAVA_PACKAGES: Record<string, ProviderInfo> = {
