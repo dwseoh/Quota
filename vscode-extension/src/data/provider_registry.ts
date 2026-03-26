@@ -113,6 +113,45 @@ export const JS_PACKAGES: Record<string, ProviderInfo> = {
     '@googlemaps/google-maps-services-js': { provider: 'google-maps', category: 'maps' },
 };
 
+// go module paths → provider info
+// prefix entries (e.g. 'github.com/aws/aws-sdk-go') match any subpackage import
+export const GO_PACKAGES: Record<string, ProviderInfo> = {
+    // llm
+    'github.com/openai/openai-go':              { provider: 'openai',      category: 'llm' },
+    'github.com/sashabaranov/go-openai':        { provider: 'openai',      category: 'llm' },
+    'github.com/anthropics/anthropic-sdk-go':   { provider: 'anthropic',   category: 'llm' },
+    'github.com/google/generative-ai-go':       { provider: 'gemini',      category: 'llm' },
+    'github.com/tmc/langchaingo':               { provider: 'langchain',   category: 'llm' },
+
+    // payment
+    'github.com/stripe/stripe-go':              { provider: 'stripe',      category: 'payment' },
+
+    // database
+    'go.mongodb.org/mongo-driver':              { provider: 'mongodb',     category: 'database' },
+    'github.com/supabase-community/supabase-go': { provider: 'supabase',   category: 'database' },
+    'github.com/redis/go-redis':                { provider: 'redis',       category: 'database' },
+    'github.com/go-redis/redis':                { provider: 'redis',       category: 'database' },
+
+    // cloud — prefix match handles subpackage imports like aws-sdk-go-v2/service/s3
+    'github.com/aws/aws-sdk-go-v2':             { provider: 'aws',         category: 'cloud' },
+    'github.com/aws/aws-sdk-go':                { provider: 'aws',         category: 'cloud' },
+    'cloud.google.com/go':                      { provider: 'gcp',         category: 'cloud' },
+    'github.com/Azure/azure-sdk-for-go':        { provider: 'azure',       category: 'cloud' },
+
+    // communication
+    'github.com/twilio/twilio-go':              { provider: 'twilio',      category: 'communication' },
+    'github.com/sendgrid/sendgrid-go':          { provider: 'sendgrid',    category: 'communication' },
+
+    // search / vector
+    'github.com/pinecone-io/go-pinecone':       { provider: 'pinecone',    category: 'search' },
+    'github.com/elastic/go-elasticsearch':      { provider: 'elasticsearch', category: 'search' },
+
+    // monitoring
+    'github.com/getsentry/sentry-go':           { provider: 'sentry',      category: 'monitoring' },
+    'github.com/DataDog/datadog-go':            { provider: 'datadog',     category: 'monitoring' },
+    'github.com/posthog/posthog-go':            { provider: 'posthog',     category: 'monitoring' },
+};
+
 // python module names → provider info
 // supports both root module (e.g. 'openai') and dotted names (e.g. 'google.generativeai')
 export const PYTHON_MODULES: Record<string, ProviderInfo> = {
