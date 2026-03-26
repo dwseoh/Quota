@@ -9,6 +9,7 @@ import {
     CDK_CLASS_MAP, CDK_SIZE_MAP,
     DYNAMODB_WCU_MONTHLY, DYNAMODB_RCU_MONTHLY,
     K8S_VCPU_MONTHLY, K8S_GB_MEM_MONTHLY,
+    GCP_COMPUTE_COSTS, GCP_SQL_COSTS, GKE_CLUSTER_MONTHLY,
 } from './price_table';
 
 // ---- helpers ----------------------------------------------------------------
@@ -161,6 +162,66 @@ function analyzeTerraform(content: string, filePath: string): OptimizationSugges
                 ));
                 break;
             }
+            // --- gcp ---
+            case 'google_compute_instance': {
+                const cost = GCP_COMPUTE_COSTS[instanceType.toLowerCase()];
+                suggestions.push(makeSuggestion(
+                    id, filePath, blockStartLine,
+                    `gce ${instanceType || 'instance'}${cost !== undefined ? ` — $${cost.toFixed(2)}/mo` : ''}`,
+                    `gcp compute engine on-demand instance. ${cost !== undefined ? 'estimated monthly at full uptime (us-central1).' : 'unknown machine type — check gcp pricing.'}`,
+                    cost ?? null,
+                ));
+                break;
+            }
+            case 'google_sql_database_instance': {
+                const cost = GCP_SQL_COSTS[instanceType.toLowerCase()];
+                suggestions.push(makeSuggestion(
+                    id, filePath, blockStartLine,
+                    `cloud sql ${instanceType || 'instance'}${cost !== undefined ? ` — $${cost.toFixed(2)}/mo` : ''}`,
+                    `gcp cloud sql on-demand instance (no ha, storage not included). ${cost !== undefined ? 'estimated monthly (us-central1).' : 'unknown tier.'}`,
+                    cost ?? null,
+                ));
+                break;
+            }
+            case 'google_container_cluster': {
+                suggestions.push(makeSuggestion(
+                    id, filePath, blockStartLine,
+                    `gke cluster — $${GKE_CLUSTER_MONTHLY.toFixed(2)}/mo management fee`,
+                    'gcp gke: $0.10/hr cluster management fee (waived for first zonal autopilot cluster). node vm costs are additional.',
+                    GKE_CLUSTER_MONTHLY,
+                ));
+                break;
+            }
+            case 'google_container_node_pool': {
+                const cost = GCP_COMPUTE_COSTS[instanceType.toLowerCase()];
+                suggestions.push(makeSuggestion(
+                    id, filePath, blockStartLine,
+                    `gke node pool ${instanceType || ''}${cost !== undefined ? ` — $${cost.toFixed(2)}/node/mo` : ''}`,
+                    `gcp gke node pool. cost per node — multiply by node count. ${cost !== undefined ? 'estimated (us-central1).' : 'unknown machine type.'}`,
+                    cost ?? null,
+                ));
+                break;
+            }
+            case 'google_cloud_run_service':
+            case 'google_cloud_run_v2_service': {
+                suggestions.push(makeSuggestion(
+                    id, filePath, blockStartLine,
+                    'cloud run service — cost depends on requests',
+                    'gcp cloud run: billed per request + cpu/memory while handling traffic. generous free tier (2m requests/mo).',
+                    null,
+                ));
+                break;
+            }
+            case 'google_cloudfunctions_function':
+            case 'google_cloudfunctions2_function': {
+                suggestions.push(makeSuggestion(
+                    id, filePath, blockStartLine,
+                    'cloud function — cost depends on invocations',
+                    'gcp cloud functions: first 2m invocations/mo free, then $0.40/million. negligible at low scale.',
+                    null,
+                ));
+                break;
+            }
         }
         // reset per-block state
         instanceType = '';
@@ -206,9 +267,11 @@ function analyzeTerraform(content: string, filePath: string): OptimizationSugges
         const [, key, val] = kvMatch;
 
         switch (key) {
-            case 'instance_type':  instanceType = val; break;
-            case 'instance_class': instanceType = val; break;
-            case 'node_type':      instanceType = val; break;
+            case 'instance_type':  instanceType = val; break; // aws ec2
+            case 'instance_class': instanceType = val; break; // aws rds
+            case 'node_type':      instanceType = val; break; // aws elasticache
+            case 'machine_type':   instanceType = val; break; // gcp compute engine, gke node pool
+            case 'tier':           instanceType = val; break; // gcp cloud sql
             case 'cpu':            fargateVcpu = parseInt(val) || 0; break;
             case 'memory':         fargateMemMib = parseInt(val) || 0; break;
         }
@@ -377,6 +440,61 @@ function analyzeCdkPulumi(content: string, filePath: string): OptimizationSugges
                     'sst function — cost depends on invocations',
                     'sst aws function (backed by lambda). negligible at low scale.',
                     null,
+                );
+            },
+        },
+        // pulumi gcp compute instance
+        {
+            pattern: /new\s+gcp\.compute\.Instance\s*\(/,
+            handler: (i, lines, fp) => {
+                const m = scanWindow(lines, i, 15, /machineType\s*:\s*['"`]([^'"`]+)['"`]/);
+                const machineType = m ? m[1].toLowerCase() : null;
+                const cost = machineType ? GCP_COMPUTE_COSTS[machineType] : undefined;
+                return makeSuggestion(
+                    `iac-pulumi-gce-${fp}-${i}`, fp, i + 1,
+                    `gce ${machineType || 'instance'}${cost !== undefined ? ` — $${cost.toFixed(2)}/mo` : ''}`,
+                    cost !== undefined ? 'gcp compute engine instance. estimated monthly at full uptime (us-central1).' : 'gcp compute engine instance. specify machineType to estimate cost.',
+                    cost ?? null,
+                );
+            },
+        },
+        // pulumi gcp cloud sql
+        {
+            pattern: /new\s+gcp\.sql\.DatabaseInstance\s*\(/,
+            handler: (i, lines, fp) => {
+                // tier is nested: settings: { tier: "db-n1-standard-2" }
+                const m = scanWindow(lines, i, 20, /tier\s*:\s*['"`](db-[^'"`]+)['"`]/);
+                const tier = m ? m[1].toLowerCase() : null;
+                const cost = tier ? GCP_SQL_COSTS[tier] : undefined;
+                return makeSuggestion(
+                    `iac-pulumi-cloudsql-${fp}-${i}`, fp, i + 1,
+                    `cloud sql ${tier || 'instance'}${cost !== undefined ? ` — $${cost.toFixed(2)}/mo` : ''}`,
+                    cost !== undefined ? 'gcp cloud sql (no ha, storage not included). estimated monthly (us-central1).' : 'gcp cloud sql instance.',
+                    cost ?? null,
+                );
+            },
+        },
+        // pulumi gcp cloud run
+        {
+            pattern: /new\s+gcp\.cloudrun(?:v2)?\.Service\s*\(/,
+            handler: (i, _lines, fp) => {
+                return makeSuggestion(
+                    `iac-pulumi-cloudrun-${fp}-${i}`, fp, i + 1,
+                    'cloud run service — cost depends on requests',
+                    'gcp cloud run: billed per request + cpu/memory while handling traffic. generous free tier (2m requests/mo).',
+                    null,
+                );
+            },
+        },
+        // pulumi gcp gke cluster
+        {
+            pattern: /new\s+gcp\.container\.Cluster\s*\(/,
+            handler: (i, _lines, fp) => {
+                return makeSuggestion(
+                    `iac-pulumi-gke-${fp}-${i}`, fp, i + 1,
+                    `gke cluster — $${GKE_CLUSTER_MONTHLY.toFixed(2)}/mo management fee`,
+                    'gcp gke: $0.10/hr cluster management fee. node vm costs are additional.',
+                    GKE_CLUSTER_MONTHLY,
                 );
             },
         },

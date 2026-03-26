@@ -120,3 +120,58 @@ export const DYNAMODB_RCU_MONTHLY = 0.00013 * 730; // ~$0.09/RCU/month
 // kubernetes rough compute cost (average across instance types, us-east-1 on-demand)
 export const K8S_VCPU_MONTHLY  = 35;  // ~$35/vCPU/month
 export const K8S_GB_MEM_MONTHLY = 4.4; // ~$4.40/GB memory/month
+
+// gcp compute engine on-demand monthly cost (us-central1, hourly * 730h)
+export const GCP_COMPUTE_COSTS: Record<string, number> = {
+    'e2-micro':       6.11,
+    'e2-small':      12.23,
+    'e2-medium':     24.46,
+    'e2-standard-2': 48.93,
+    'e2-standard-4': 97.86,
+    'e2-standard-8': 195.79,
+    'e2-standard-16':391.58,
+    'e2-highcpu-2':  35.77,
+    'e2-highcpu-4':  71.54,
+    'e2-highcpu-8':  143.07,
+    'e2-highmem-2':  67.28,
+    'e2-highmem-4':  134.56,
+    'n1-standard-1': 34.67,
+    'n1-standard-2': 69.35,
+    'n1-standard-4': 138.70,
+    'n1-standard-8': 277.40,
+    'n1-highcpu-2':  42.77,
+    'n1-highcpu-4':  85.54,
+    'n1-highmem-2':  90.32,
+    'n1-highmem-4':  180.64,
+    'n2-standard-2': 70.88,
+    'n2-standard-4': 141.76,
+    'n2-standard-8': 283.60,
+    'n2-highcpu-2':  52.11,
+    'n2-highcpu-4':  104.22,
+    'n2-highmem-2':  97.61,
+    'n2-highmem-4':  195.22,
+    'c2-standard-4': 152.42,
+    'c2-standard-8': 304.78,
+    'c3-standard-4': 146.58,
+    'c3-standard-8': 293.15,
+};
+
+// gcp cloud sql on-demand monthly cost (us-central1, single instance, no HA)
+export const GCP_SQL_COSTS: Record<string, number> = {
+    'db-f1-micro':      10.95,
+    'db-g1-small':      36.50,
+    'db-n1-standard-1': 76.65,
+    'db-n1-standard-2': 153.30,
+    'db-n1-standard-4': 306.60,
+    'db-n1-standard-8': 613.20,
+    'db-n1-highmem-2':  189.07,
+    'db-n1-highmem-4':  378.14,
+    'db-n1-highmem-8':  756.28,
+    'db-n2-standard-2': 155.33,
+    'db-n2-standard-4': 310.66,
+    'db-n2-highmem-2':  196.06,
+    'db-n2-highmem-4':  392.12,
+};
+
+// gke cluster management fee: $0.10/hr per cluster (waived for autopilot on first cluster)
+export const GKE_CLUSTER_MONTHLY = 0.10 * 730; // $73/mo
