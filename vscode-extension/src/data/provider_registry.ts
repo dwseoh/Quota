@@ -344,5 +344,13 @@ export function lookupProvider(pkg: string): ProviderInfo | null {
     const root = lower.split('.')[0];
     if (PYTHON_MODULES[root]) {return PYTHON_MODULES[root];}
 
+    // go exact match
+    if (GO_PACKAGES[pkg]) {return GO_PACKAGES[pkg];}
+
+    // go prefix match (handles subpackage imports like github.com/aws/aws-sdk-go-v2/service/s3)
+    for (const key of Object.keys(GO_PACKAGES)) {
+        if (pkg.startsWith(key)) {return GO_PACKAGES[key];}
+    }
+
     return null;
 }

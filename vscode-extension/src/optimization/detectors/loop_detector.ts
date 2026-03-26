@@ -4,12 +4,14 @@ import { parse } from '@typescript-eslint/parser';
 import * as path from 'path';
 import { execFile } from 'child_process';
 import { findPythonBin } from '../../ast_parser';
+import { findGoBin } from '../../ast_parser/go_parse';
 
 const PYTHON_LOOP_SCRIPT = path.join(__dirname, '../../../scripts/loop_detector_ast.py');
+const GO_LOOP_SCRIPT = path.join(__dirname, '../../../scripts/loop_detector_ast.go');
 
 export class LoopDetector implements OptimizationDetector {
     id = 'loop-detector';
-    targetFileTypes = ['typescript', 'javascript', 'python', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.tsx', '.jsx'];
+    targetFileTypes = ['typescript', 'javascript', 'python', 'go', 'javascriptreact', 'typescriptreact', '.ts', '.js', '.py', '.go', '.tsx', '.jsx'];
 
     // costly operations that are unambiguously expensive inside a loop.
     // deliberately narrow — avoid generic names like 'get', 'put', 'find' that
@@ -37,9 +39,13 @@ export class LoopDetector implements OptimizationDetector {
 
     async analyze(context: FileContext, codeUnits?: CodeUnit[]): Promise<OptimizationSuggestion[]> {
         const isPython = context.languageId === 'python' || context.uri.fsPath.endsWith('.py');
+        const isGo = context.languageId === 'go' || context.uri.fsPath.endsWith('.go');
 
         if (isPython) {
             return this.analyzePython(context.uri.fsPath, context.content, context.uri.toString());
+        }
+        if (isGo) {
+            return this.analyzeGo(context.uri.fsPath, context.content, context.uri.toString());
         }
         return this.analyzeTypeScript(context.content, context.uri.toString());
     }
@@ -167,6 +173,57 @@ export class LoopDetector implements OptimizationDetector {
                     costImpact: hasCache ? 'Low' : 'High'
                 });
             }
+        }
+    }
+
+    /**
+     * analyze go using go/ast subprocess, no fallback (indentation is unreliable for go).
+     */
+    private async analyzeGo(filePath: string, content: string, fileUri: string): Promise<OptimizationSuggestion[]> {
+        const bin = await findGoBin();
+        if (!bin) { return []; }
+
+        try {
+            const stdout = await new Promise<string>((resolve, reject) => {
+                execFile(
+                    bin,
+                    ['run', GO_LOOP_SCRIPT, filePath],
+                    {
+                        timeout: 15000,
+                        maxBuffer: 2 * 1024 * 1024,
+                        cwd: path.dirname(GO_LOOP_SCRIPT),
+                    },
+                    (err, out) => {
+                        if (err) { reject(err); }
+                        else { resolve(out); }
+                    },
+                );
+            });
+
+            const hits: Array<{ line: number; col: number; callName: string; loopStartLine: number }> = JSON.parse(stdout);
+            return hits.map(hit => {
+                const loopText = content.split('\n').slice(hit.loopStartLine - 1).join('\n');
+                const hasCache = this.cachePatterns.some(p => loopText.toLowerCase().includes(p));
+                return {
+                    id: `loop-cost-go-${hit.line}`,
+                    title: hasCache ? 'Verify Cache Effectiveness' : 'Costly Operation in Loop',
+                    description: `Detected potential costly operation '${hit.callName}' inside a loop. ` +
+                        (hasCache
+                            ? `It looks like you have some caching logic, but verify it effectively reduces calls.`
+                            : `Consider implementing a Read-Through Cache (Redis/Memcached) or Batching requests to reduce costs.`),
+                    severity: (hasCache ? 'info' : 'warning') as 'info' | 'warning',
+                    location: {
+                        fileUri,
+                        startLine: hit.line,
+                        startColumn: hit.col,
+                        endLine: hit.line,
+                        endColumn: hit.col + hit.callName.length,
+                    },
+                    costImpact: hasCache ? 'Low' : 'High',
+                };
+            });
+        } catch {
+            return [];
         }
     }
 
