@@ -29,6 +29,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   const workspaceRoot = workspaceFolders[0].uri.fsPath;
 
+  // last computed calls — used by tab-switch handler to update decorations without re-scanning
+  let cachedAllCalls: llm_call[] = [];
+
   // Helper function to collect all LLM calls from cached graph
   const updateTreeviewWithAllCalls = async () => {
     const graph = getCachedGraph();
@@ -64,7 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }
     
-    console.log(`\n🎯 TOTAL: Found ${allCalls.length} LLM calls across workspace`);
+    cachedAllCalls = allCalls;;
     
     // --- Run Optimization Analysis Globally ---
     // Optimization: Debounce this heavily? For now, we just rely on explicit calls or save events.
@@ -420,71 +423,38 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(jump_to_suggestion_cmd);
 
+  // --- decoration provider (visual heatmap) ---
+  const decorationProvider = new CostDecorationProvider();
+
   // --- document listeners ---
 
-  // Note: We don't refresh CodeLens on typing because parse_llm_calls() uses
-  // the cached graph which only updates on save. Refreshing on typing would
-  // cause duplicate/stale CodeLens to appear.
-
-  // re-index on save for incremental updates
+  // debounced re-index on save — 500ms cooldown to avoid re-scanning on rapid saves
+  let saveDebounceTimer: ReturnType<typeof setTimeout> | undefined;
   context.subscriptions.push(
-    vscode.workspace.onDidSaveTextDocument(async (document) => {
+    vscode.workspace.onDidSaveTextDocument((document) => {
       const filePath = document.uri.fsPath;
       if (filePath.endsWith('.py') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
-        try {
-          // Debounce logic could be here, but for now relying on async queue
-          await indexWorkspace(workspaceRoot);
-          
-          // Don't await this blocking UI - let it happen in background
-          updateTreeviewWithAllCalls().catch(console.error);
-          
-          codelens_provider.refresh();
-          tree_provider.refresh();
-        } catch (error) {
-          console.error('Error re-indexing on save:', error);
-        }
+        clearTimeout(saveDebounceTimer);
+        saveDebounceTimer = setTimeout(async () => {
+          try {
+            await indexWorkspace(workspaceRoot);
+            await updateTreeviewWithAllCalls();
+            codelens_provider.refresh();
+            tree_provider.refresh();
+          } catch (error) {
+            vscode.window.showErrorMessage(`re-index failed: ${error}`);
+          }
+        }, 500);
       }
     })
   );
 
-  // --- Decoration Provider (Visual Heatmap) ---
-  const decorationProvider = new CostDecorationProvider();
-  
-  // refresh on active editor change
+  // on tab switch, only update decorations from cached calls — no re-scan
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
         codelens_provider.refresh();
-        tree_provider.refresh();
-        updateTreeviewWithAllCalls(); 
-      }
-    })
-  );
-
-  // refresh on document open
-  context.subscriptions.push(
-    vscode.workspace.onDidOpenTextDocument((document) => {
-      codelens_provider.refresh();
-      tree_provider.refresh();
-      updateTreeviewWithAllCalls();
-    })
-  );
-
-  // re-index on save for incremental updates
-  context.subscriptions.push(
-    vscode.workspace.onDidSaveTextDocument(async (document) => {
-      const filePath = document.uri.fsPath;
-      if (filePath.endsWith('.py') || filePath.endsWith('.ts') || filePath.endsWith('.js')) {
-        try {
-          await indexWorkspace(workspaceRoot);
-          
-          await updateTreeviewWithAllCalls();
-          
-          codelens_provider.refresh();
-          tree_provider.refresh();
-        } catch (error) {
-          console.error('Error re-indexing on save:', error);
-        }
+        decorationProvider.updateDecorations(editor, cachedAllCalls);
       }
     })
   );
